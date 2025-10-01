@@ -1,5 +1,5 @@
 import { google } from "googleapis";
-import { detectChapters, Chapter } from './chapterService';
+import { detectChapters, Chapter } from './chapterDetector';
 
 // Authenticate with Google using your service account
 const auth = new google.auth.GoogleAuth({
@@ -129,4 +129,5 @@ export async function fetchDocumentWithChapters(documentId: string): Promise<Cha
 // - Private document (no access)
 // - Document not found
 // - API rate limits
+
 

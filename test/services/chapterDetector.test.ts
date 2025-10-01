@@ -1,4 +1,4 @@
-import { detectChapters } from '../../src/services/chapterService';
+import { detectChapters } from '../../src/services/chapterDetector';
 
 describe('Chapter Detection', () => {
   test('should detect markdown headings', () => {
@@ -48,3 +48,4 @@ Content here.`;
     expect(chapters[0].id).toBe('chapter-1-introduction');
   });
 });
+

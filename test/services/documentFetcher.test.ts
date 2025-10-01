@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { google } from 'googleapis';
-import { extractDocumentId, fetchDocumentContent, parseDocumentContent, parseParagraph, parseTable } from '../../src/services/googleDocsService';
+import { extractDocumentId, fetchDocumentContent, parseDocumentContent, parseParagraph, parseTable } from '../../src/services/documentFetcher';
 
 describe('extractDocumentId', () => {
   test('should extract ID from full Google Docs URL with /edit', () => {
@@ -131,3 +131,4 @@ test('should handle parseTable with no tableRows', () => {
 });
 
 });
+

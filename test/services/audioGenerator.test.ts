@@ -1,4 +1,4 @@
-import { TTSService } from '../../src/services/ttsService';
+import { AudioGenerator } from '../../src/services/audioGenerator';
 import fs from 'fs';
 import path from 'path';
 
@@ -16,12 +16,12 @@ jest.mock('@google-cloud/text-to-speech', () => ({
   }))
 }));
 
-describe('TTSService', () => {
-  let ttsService: TTSService;
+describe('AudioGenerator', () => {
+  let audioGenerator: AudioGenerator;
   const testOutputDir = './test-audio';
 
   beforeEach(() => {
-    ttsService = new TTSService(testOutputDir);
+    audioGenerator = new AudioGenerator(testOutputDir);
   });
 
   afterEach(() => {
@@ -35,7 +35,7 @@ describe('TTSService', () => {
     const text = 'Hello, this is a test.';
     const fileName = 'test-audio';
     
-    const result = await ttsService.generateAudio(text, fileName);
+    const result = await audioGenerator.generateAudio(text, fileName);
     
     expect(result.fileName).toBe('test-audio.mp3');
     expect(result.filePath).toContain('test-audio.mp3');
@@ -49,7 +49,7 @@ describe('TTSService', () => {
       { id: '2', title: 'Chapter 2', content: 'Content 2' }
     ];
     
-    const results = await ttsService.generateMultipleChapterAudio(chapters);
+    const results = await audioGenerator.generateMultipleChapterAudio(chapters);
     
     expect(results).toHaveLength(2);
     expect(results[0].fileName).toBe('chapter-1.mp3');
@@ -57,7 +57,7 @@ describe('TTSService', () => {
   });
   
   test('should get available voices', async () => {
-    const voices = await ttsService.getAvailableVoices('en-US');
+    const voices = await audioGenerator.getAvailableVoices('en-US');
     
     expect(Array.isArray(voices)).toBe(true);
     
@@ -73,7 +73,7 @@ describe('TTSService', () => {
     const fileName = 'empty-test';
     
     // Empty text should still generate a file (Google TTS accepts it)
-    const result = await ttsService.generateAudio(text, fileName);
+    const result = await audioGenerator.generateAudio(text, fileName);
     expect(result.fileName).toBe('empty-test.mp3');
     expect(result.size).toBeGreaterThan(0);
   });
@@ -84,10 +84,11 @@ describe('TTSService', () => {
       synthesizeSpeech: jest.fn().mockRejectedValue(new Error('TTS API Error'))
     };
     
-    const ttsServiceWithError = new TTSService('./test-audio');
-    (ttsServiceWithError as any).client = mockClient;
+    const audioGeneratorWithError = new AudioGenerator('./test-audio');
+    (audioGeneratorWithError as any).client = mockClient;
     
-    await expect(ttsServiceWithError.generateAudio('test', 'error-test')).rejects.toThrow('TTS generation failed');
+    await expect(audioGeneratorWithError.generateAudio('test', 'error-test')).rejects.toThrow('TTS generation failed');
   });
 
 });
+

@@ -24,7 +24,7 @@ export interface AudioFile {
   size: number;
 }
 
-export class TTSService {
+export class AudioGenerator {
   private client: TextToSpeechClient;
   private outputDir: string;
 
@@ -115,3 +115,4 @@ export class TTSService {
   }
 
 }
+

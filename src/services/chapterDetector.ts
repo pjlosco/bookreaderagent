@@ -81,3 +81,4 @@ export interface Chapter {
       .replace(/\s+/g, '-')
       .substring(0, 50);
   }
+
