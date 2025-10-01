@@ -60,6 +60,7 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 
 - **Backend**: Node.js with TypeScript and Express
 - **Google Integration**: Google Docs API and Google Cloud Text-to-Speech
+- **TTS Library**: @google-cloud/text-to-speech for high-quality audio generation
 - **AI/ML**: OpenAI API or Hugging Face Transformers for Q&A
 - **Vector Database**: Pinecone or Chroma for document embeddings
 - **TTS**: Google Cloud Text-to-Speech for high-quality speech synthesis
@@ -73,9 +74,9 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [x] Google Docs URL parsing and document ID extraction
 - [x] Google Docs API integration setup
 - [x] Document content fetching and parsing
-- [ ] **Chapter detection and segmentation** - Identify natural breaking points (headings, tabs, sections)
+- [x] **Chapter detection and segmentation** - Identify natural breaking points (headings, tabs, sections)
 - [ ] **Multi-file audio generation** - Create separate audio files for each chapter/section
-- [ ] Google Cloud Text-to-Speech integration
+- [x] **Google Cloud Text-to-Speech integration** - Convert text to high-quality audio
 - [ ] Basic web interface with audio player
 - [ ] **Chapter navigation** - Allow users to jump between chapters
 - [ ] MP3 download functionality (individual chapters + full document)
@@ -99,6 +100,20 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [ ] Mobile app interface
 - [ ] Offline mode with cached content
 
+## 🗺️ Roadmap
+
+### Authentication Evolution
+- **Phase 1**: Service Account (Current) - Development and backend services
+- **Phase 2**: OAuth2 Web Auth - User login through web interface
+- **Phase 3**: Mobile OAuth - Platform-specific authentication for iOS/Android
+- **Phase 4**: Hybrid Auth - Service account + user authentication
+
+### Future Integrations
+- **Mobile Apps**: Native iOS and Android applications
+- **Voice Assistants**: Integration with Alexa, Google Assistant
+- **Learning Platforms**: Canvas, Blackboard, Moodle integration
+- **Enterprise**: SSO, team collaboration features
+
 ## 🎵 Audio Quality
 
 The agent prioritizes audio quality by:
@@ -119,9 +134,69 @@ The intelligent agent provides:
 
 ## 🚀 Getting Started
 
-1. **Phase 1**: Basic document-to-audio conversion
-2. **Phase 2**: Add AI-powered Q&A capabilities
-3. **Phase 3**: Enhanced features and mobile support
+### Prerequisites
+- Node.js 18+ and npm
+- Google Cloud Project with APIs enabled
+- Google Cloud Service Account with credentials
+
+### Setup Instructions
+
+#### 1. Google Cloud Setup
+1. **Create a Google Cloud Project**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+
+2. **Enable Required APIs**:
+   - Google Docs API
+   - Google Cloud Text-to-Speech API
+   - Ensure both APIs are enabled for your project
+
+3. **Create Service Account**:
+   - Go to "IAM & Admin" > "Service Accounts"
+   - Create new service account
+   - Download JSON credentials file
+   - Place in project root as `credentials.json`
+
+#### 2. Project Setup
+```bash
+# Clone and install dependencies
+git clone <repository-url>
+cd bookreaderagent
+npm install
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your credentials path
+```
+
+#### 3. Environment Configuration
+Create `.env` file:
+```env
+GOOGLE_APPLICATION_CREDENTIALS=./credentials.json
+GOOGLE_PROJECT_ID=your-project-id
+PORT=3000
+NODE_ENV=development
+TTS_OUTPUT_DIR=./audio
+```
+
+#### 4. Run Tests
+```bash
+npm test
+npm run test:coverage
+```
+
+### Authentication
+
+**Current**: Service Account Authentication
+- Server-to-server authentication for development
+- Manual credential management
+- Best for backend services and automated processes
+
+**Future**: OAuth2 User Authentication
+- User login through web/mobile interface
+- Access to user's own Google Docs
+- Better security and user experience
+- Mobile app compatibility
 
 ---
 
