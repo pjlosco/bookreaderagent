@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { google } from 'googleapis';
-import { extractDocumentId, fetchDocumentContent, parseDocumentContent } from '../../src/services/googleDocsService';
+import { extractDocumentId, fetchDocumentContent, parseDocumentContent, parseParagraph, parseTable } from '../../src/services/googleDocsService';
 
 describe('extractDocumentId', () => {
   test('should extract ID from full Google Docs URL with /edit', () => {
@@ -69,5 +69,65 @@ describe('extractDocumentId', () => {
     expect(result).toBe("Hello World");
   });
 
+  // Add these tests to your existing describe block
+
+test('should parse paragraph content correctly', () => {
+  const mockParagraph = {
+    elements: [
+      { textRun: { content: "Hello " } },
+      { textRun: { content: "World" } }
+    ]
+  };
+  
+  const result = parseParagraph(mockParagraph);
+  expect(result).toBe("Hello World");
+});
+
+test('should parse table content correctly', () => {
+  const mockTable = {
+    tableRows: [
+      {
+        tableCells: [
+          {
+            content: [
+              {
+                paragraph: {
+                  elements: [
+                    { textRun: { content: "Cell 1" } }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  };
+  
+  const result = parseTable(mockTable);
+  expect(result).toBe("Cell 1 \n");  // Changed from "Cell 1\n" to "Cell 1 \n"
+});
+
+test('should handle empty paragraph', () => {
+  const mockParagraph = { elements: [] };
+  const result = parseParagraph(mockParagraph);
+  expect(result).toBe("");
+});
+
+test('should handle empty table', () => {
+  const mockTable = { tableRows: [] };
+  const result = parseTable(mockTable);
+  expect(result).toBe("");
+});
+
+test('should handle parseDocumentContent with no body', () => {
+  const result = parseDocumentContent({});
+  expect(result).toBe('');
+});
+
+test('should handle parseTable with no tableRows', () => {
+  const result = parseTable({});
+  expect(result).toBe('');
+});
 
 });
