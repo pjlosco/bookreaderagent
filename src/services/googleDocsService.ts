@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import { detectChapters, Chapter } from './chapterService';
 
 // Authenticate with Google using your service account
 const auth = new google.auth.GoogleAuth({
@@ -114,6 +115,13 @@ export function parseTable(table: any): string {
     }
     
     return text;
+}
+
+
+// Add this function
+export async function fetchDocumentWithChapters(documentId: string): Promise<Chapter[]> {
+  const content = await fetchDocumentContent(documentId);
+  return detectChapters(content);
 }
 
 // Handle common errors:
