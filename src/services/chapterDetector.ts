@@ -18,7 +18,7 @@ export interface Chapter {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       
-      // Detect chapter markers
+      // Detect chapter markers - improved to catch more patterns
       if (isChapterHeading(line)) {
         // Save previous chapter if it exists
         if (currentChapter.title && currentChapter.content && currentChapter.content.trim().length > 10) {
@@ -58,10 +58,30 @@ export interface Chapter {
         });
     }
     
+    // Ensure we don't lose any content - if we have chapters but there's content after the last one
+    if (chapters.length > 0) {
+        const lastChapter = chapters[chapters.length - 1];
+        const remainingContent = lines.slice(lastChapter.endIndex + 1).join('\n').trim();
+        
+        if (remainingContent && remainingContent.length > 50) {
+            // Add remaining content as a new chapter
+            chapters.push({
+                id: 'additional-content',
+                title: 'Additional Content',
+                content: remainingContent,
+                startIndex: lastChapter.endIndex + 1,
+                endIndex: lines.length - 1
+            });
+        }
+    }
+    
     return chapters;
   }
   
   function isChapterHeading(line: string): boolean {
+    // Skip empty lines
+    if (!line.trim()) return false;
+    
     // Check for various heading patterns
     return (
       line.startsWith('# ') ||           // Markdown H1
@@ -69,7 +89,10 @@ export interface Chapter {
       line.startsWith('### ') ||         // Markdown H3
       !!line.match(/^Chapter \d+/i) ||   // "Chapter 1", "Chapter 2", etc.
       !!line.match(/^\d+\.\s/) ||        // "1. Title", "2. Title"
-      !!line.match(/^[A-Z][A-Z\s]+$/) && line.length < 50  // ALL CAPS titles
+      !!line.match(/^[A-Z][A-Z\s]+$/) && line.length < 50 ||  // ALL CAPS titles
+      // New patterns for better detection
+      !!line.match(/^(Introduction|Conclusion|Summary|Preface|Epilogue|Appendix|Key Concepts|Overview|Background|Methodology|Results|Discussion|References|Bibliography)/i) ||  // Common section titles
+      !!line.match(/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$/) && line.length < 100 && line.length > 3  // Title case headings
     );
   }
   

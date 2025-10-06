@@ -49,9 +49,9 @@ export class AudioGenerator {
       const request: google.cloud.texttospeech.v1.ISynthesizeSpeechRequest = {
         input: { text },
         voice: {
-          languageCode: options.voice?.languageCode || 'en-US',
-          name: options.voice?.name || 'en-US-Wavenet-D',
-          ssmlGender: options.voice?.ssmlGender || 'NEUTRAL',
+          languageCode: options.voice?.languageCode || 'en-GB',
+          name: options.voice?.name || 'en-GB-Neural2-A', // British English female voice (premium quality)
+          ssmlGender: options.voice?.ssmlGender || 'FEMALE',
         },
         audioConfig: {
           audioEncoding: options.audioConfig?.audioEncoding || 'MP3',
@@ -87,10 +87,77 @@ export class AudioGenerator {
     chapterContent: string,
     chapterId: string
   ): Promise<AudioFile> {
-    const fileName = `chapter-${chapterId}`;
-    const fullText = `${chapterTitle}\n\n${chapterContent}`;
+    // Create clean filename from chapter title
+    const cleanFileName = this.createCleanFileName(chapterTitle);
     
-    return this.generateAudio(fullText, fileName);
+    // Clean the content to avoid title repetition
+    const cleanedContent = this.cleanContentForTTS(chapterTitle, chapterContent);
+    
+    return this.generateAudio(cleanedContent, cleanFileName);
+  }
+
+  private cleanContentForTTS(title: string, content: string): string {
+    let cleanedContent = content.trim();
+    
+    // Clean up markdown and formatting first
+    cleanedContent = cleanedContent
+      .replace(/^\s*#+\s*/gm, '') // Remove markdown headers
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold formatting
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic formatting
+      .replace(/\n{3,}/g, '\n\n') // Normalize multiple newlines
+      .trim();
+    
+    // Remove duplicate title occurrences (keep only the first one)
+    const titleVariations = [
+      title,
+      title.replace(/^Chapter \d+:\s*/i, ''), // Without "Chapter X:" prefix
+      title.replace(/:\s*$/, ''), // Without trailing colon
+    ];
+    
+    for (const variation of titleVariations) {
+      if (!variation.trim()) continue;
+      
+      // Create regex to find all occurrences (case insensitive)
+      const titleRegex = new RegExp(
+        `(^|\\n)\\s*${this.escapeRegex(variation)}\\s*(\\n|$)`,
+        'gi'
+      );
+      
+      // Count occurrences
+      const matches = cleanedContent.match(titleRegex);
+      if (matches && matches.length > 1) {
+        // Keep first occurrence, remove subsequent ones
+        let firstOccurrence = true;
+        cleanedContent = cleanedContent.replace(titleRegex, (match) => {
+          if (firstOccurrence) {
+            firstOccurrence = false;
+            return match; // Keep the first one
+          }
+          return '\n'; // Replace duplicates with newline
+        });
+      }
+    }
+    
+    // Final cleanup
+    cleanedContent = cleanedContent
+      .replace(/\n{3,}/g, '\n\n') // Normalize multiple newlines again
+      .trim();
+    
+    return cleanedContent;
+  }
+
+  private escapeRegex(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private createCleanFileName(title: string): string {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+      .substring(0, 100); // Limit length
   }
 
   async generateMultipleChapterAudio(

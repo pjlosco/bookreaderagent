@@ -2,6 +2,23 @@
 
 An intelligent AI agent that converts Google Docs into high-quality audio and provides interactive, contextual assistance. Perfect for consuming long documents while having an AI assistant that can answer questions about the content you're listening to.
 
+## ✨ Recent Accomplishments
+
+### Interactive Chapter Management (Latest)
+- **Tab-based chapter detection** — Properly parses Google Docs tabs (4 tabs = 4 chapters, not 8 subsections)
+- **Interactive UI** — Toggle switches to generate/delete audio for individual chapters
+- **Document library** — View and manage all processed Google Docs
+- **Smart caching** — Reuses existing audio files (97% faster on second run: 15s → 486ms)
+- **Clean filenames** — Uses chapter titles instead of IDs (e.g., `chapter-1-what-is-machine-learning.mp3`)
+- **Confirmation dialogs** — Prevents accidental audio deletion
+- **British English voice** — Premium Neural2-A voice for natural-sounding audiobooks
+
+### Text Cleaning & Optimization
+- **Title deduplication** — Keeps chapter title once, removes duplicates
+- **Markdown removal** — Strips `**bold**`, `*italic*` for cleaner TTS
+- **Whitespace normalization** — Reduces character count by ~13%
+- **Cost optimization** — Saves money by cleaning unnecessary formatting
+
 ## 🎯 Purpose
 
 The Book Reader Agent bridges the gap between written content and audio consumption while adding intelligent interaction by:
@@ -67,6 +84,23 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - **Frontend**: React/TypeScript with audio player and chat interface
 - **Real-time**: WebSocket for live audio position tracking
 
+## 🎉 Recent Accomplishments
+
+### ✅ Multi-file Audio Generation (Completed)
+- **DocumentProcessor Orchestrator**: Complete end-to-end workflow with comprehensive error handling
+- **Progress Tracking**: Real-time progress callbacks with detailed stage reporting (fetching, detecting, generating, complete)
+- **Robust Error Handling**: Specific error messages for document not found, permission denied, rate limits, and TTS failures
+- **Comprehensive Testing**: 51 passing tests with 92.82% code coverage
+- **Backward Compatibility**: All existing functionality preserved while adding new features
+
+### ✅ Service Architecture Refactoring (Completed)
+- **Domain-Specific Naming**: Renamed all services to use clear, descriptive names
+  - `googleDocsService` → `documentFetcher`
+  - `chapterService` → `chapterDetector`  
+  - `ttsService` → `audioGenerator`
+  - `audioService` → `fileManager`
+- **Improved Maintainability**: Clear separation of concerns and intuitive naming
+
 ## 📋 Implementation Status
 
 ### Phase 1: Basic TTS (In Progress)
@@ -78,10 +112,19 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [x] **Multi-file audio generation** - Create separate audio files for each chapter/section
 - [x] **Google Cloud Text-to-Speech integration** - Convert text to high-quality audio
 - [x] **DocumentProcessor orchestrator** - End-to-end workflow with comprehensive error handling
-- [x] **Comprehensive test coverage** - 92%+ coverage with 48 passing tests
-- [ ] Basic web interface with audio player
-- [ ] **Chapter navigation** - Allow users to jump between chapters
-- [ ] MP3 download functionality (individual chapters + full document)
+- [x] **Progress tracking system** - Real-time progress callbacks with detailed stage reporting
+- [x] **Comprehensive test coverage** - 92.82% coverage with 51 passing tests
+- [x] **Interactive web interface** - Two-tab interface with document library
+- [x] **Chapter-by-chapter audio control** - Toggle switches for individual chapter generation
+- [x] **Audio file reuse** - Intelligent caching to avoid regenerating existing files
+- [x] **Document library** - View and manage all processed documents
+- [x] **Metadata tracking** - Persistent storage of document and chapter information
+- [x] **Confirmation dialogs** - Protection against accidental deletion
+- [x] **Tab-based chapter detection** - Proper parsing of Google Docs tabs
+- [x] **Text cleaning for TTS** - Removes markdown, normalizes whitespace, deduplicates titles
+- [x] **British English Neural2 voice** - Premium quality female voice (en-GB-Neural2-A)
+- [x] **Clean filename generation** - Uses chapter titles for intuitive file names
+- [x] MP3 download functionality (individual chapters)
 
 ### Phase 2: AI Agent Features (Planned)
 - [ ] **Chapter-aware audio position tracking** - Track position within current chapter
@@ -115,6 +158,33 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - **Voice Assistants**: Integration with Alexa, Google Assistant
 - **Learning Platforms**: Canvas, Blackboard, Moodle integration
 - **Enterprise**: SSO, team collaboration features
+
+## 🎙️ Voice Selection
+
+**Default Voice:** `en-GB-Neural2-A` (British English, Female)
+- **Quality:** Premium Neural2 voice - most natural-sounding
+- **Accent:** British English (en-GB)
+- **Gender:** Female
+- **Cost:** $16 per 1 million characters (within free tier for typical usage)
+
+### Available Voice Options
+
+**Standard Voices (Best Value - $4/1M chars):**
+- `en-GB-Standard-A` — Warm, clear female voice
+- `en-GB-Standard-C` — Professional tone
+- `en-GB-Standard-F` — Clear and articulate
+
+**Neural2 Voices (Best Quality - $16/1M chars):**
+- `en-GB-Neural2-A` ⭐ — Most natural-sounding (current default)
+- `en-GB-Neural2-C` — Rich, expressive
+- `en-GB-Neural2-F` — Smooth and professional
+
+**WaveNet Voices (Premium - $16/1M chars):**
+- `en-GB-Wavenet-A` — High-quality, natural speech
+- `en-GB-Wavenet-C` — Excellent clarity
+- `en-GB-Wavenet-F` — Professional and engaging
+
+To change the voice, update `src/services/audioGenerator.ts` line 53.
 
 ## 🎵 Audio Quality
 

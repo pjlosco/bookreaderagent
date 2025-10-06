@@ -1,7 +1,11 @@
-import { extractDocumentId, fetchDocumentContent, fetchDocumentWithChapters } from './documentFetcher';
+import { extractDocumentId, fetchDocumentContent, fetchDocumentWithChapters, fetchDocumentWithTabChapters } from './documentFetcher';
 import { Chapter } from './chapterDetector';
-import { AudioGenerator, TTSOptions } from './audioGenerator';
+import { AudioGenerator, TTSOptions, AudioFile } from './audioGenerator';
 import { FileManager } from './fileManager';
+import { CostEstimator, CostEstimate } from '../utils/costEstimator';
+import { TextCleaner } from '../utils/textCleaner';
+import path from 'path';
+import fs from 'fs';
 
 export interface ProgressCallback {
     (progress: {
@@ -16,6 +20,7 @@ export interface ProgressCallback {
   export interface ProcessingOptions {
     outputDir?: string;
     onProgress?: ProgressCallback;
+    forceRegenerate?: boolean;  // If true, regenerate audio even if files exist
     voice?: {
       languageCode: string;
       name: string;
@@ -38,18 +43,23 @@ export interface ProcessingResult {
     fileName: string;
     filePath: string;
     size: number;
+    url: string;
+    content: string;
   }>;
   processingTime: number;
   success: boolean;
   error?: string;
+  costEstimate?: CostEstimate;
 }
 
 
 export class DocumentProcessor {
   private audioGenerator: AudioGenerator;
   private fileManager: FileManager;
+  private baseOutputDir: string;
 
   constructor(outputDir: string = './audio') {
+    this.baseOutputDir = outputDir;
     this.audioGenerator = new AudioGenerator(outputDir);
     this.fileManager = new FileManager(outputDir);
   }
@@ -77,11 +87,22 @@ export class DocumentProcessor {
         throw new Error('Invalid document ID or URL');
       }
 
-      // 2. Fetch document and detect chapters
+      // Create document-specific output directory
+      const documentOutputDir = path.join(this.baseOutputDir, documentId);
+      this.audioGenerator = new AudioGenerator(documentOutputDir);
+      this.fileManager = new FileManager(documentOutputDir);
+
+      // 2. Fetch document and detect chapters (use tab-based detection)
       reportProgress('fetching', 2, 5, 'Fetching document content...');
       let chapters: Chapter[];
       try {
-        chapters = await fetchDocumentWithChapters(documentId);
+        // Try tab-based chapter detection first
+        chapters = await fetchDocumentWithTabChapters(documentId);
+        
+        // Fallback to content-based detection if no tabs found
+        if (chapters.length === 0) {
+          chapters = await fetchDocumentWithChapters(documentId);
+        }
       } catch (error) {
         // Handle specific document fetching errors
         if (error instanceof Error) {
@@ -117,37 +138,86 @@ export class DocumentProcessor {
         reportProgress('detecting', 3, 5, `Detected ${chapters.length} chapters`);
       }
 
-      // 3. Generate audio for each chapter
-      const audioFiles = [];
+      // 3. Check for existing audio and load metadata
+      const existingMetadata = this.fileManager.loadMetadata(documentId);
+      const shouldRegenerate = options.forceRegenerate || !existingMetadata;
+      
+      // 4. Generate audio for each chapter (already cleaned by tab detector)
       const totalChapters = chapters.length;
+      const audioFiles = [];
       
       for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
-        reportProgress('generating', i + 1, totalChapters, `Generating audio for: ${chapter.title}`);
         
-        const audioFile = await this.audioGenerator.generateChapterAudio(
-          chapter.title,
-          chapter.content,
-          chapter.id
-        );
+        // Check if audio file already exists for this chapter
+        const cleanFileName = this.createCleanFileName(chapter.title);
+        const expectedFilePath = path.join(this.audioGenerator['outputDir'], `${cleanFileName}.mp3`);
+        
+        let audioFile: AudioFile;
+        
+        if (!shouldRegenerate && fs.existsSync(expectedFilePath)) {
+          // Reuse existing audio file
+          reportProgress('generating', i + 1, totalChapters, `Using existing audio for: ${chapter.title}`);
+          const stats = fs.statSync(expectedFilePath);
+          audioFile = {
+            fileName: `${cleanFileName}.mp3`,
+            filePath: expectedFilePath,
+            size: stats.size
+          };
+          console.log(`Reusing existing audio: ${cleanFileName}.mp3`);
+        } else {
+          // Generate new audio
+          reportProgress('generating', i + 1, totalChapters, `Generating audio for: ${chapter.title}`);
+          audioFile = await this.audioGenerator.generateChapterAudio(
+            chapter.title,
+            chapter.content,
+            chapter.id
+          );
+          console.log(`Generated new audio: ${audioFile.fileName}`);
+        }
         
         audioFiles.push({
           chapterId: chapter.id,
           chapterTitle: chapter.title,
           fileName: audioFile.fileName,
           filePath: audioFile.filePath,
-          size: audioFile.size
+          size: audioFile.size,
+          url: `/audio/${documentId}/${audioFile.fileName}`,
+          content: chapter.content
         });
       }
 
-      // 4. Return success result
+      // 4. Calculate cost estimate
+      const totalText = chapters.reduce((acc, chapter) => acc + chapter.content.length, 0);
+      const costEstimate = CostEstimator.estimateCost(
+        'x'.repeat(totalText), // Use character count for estimation
+        options.voice?.name || 'en-GB-Neural2-A'
+      );
+
+      // 5. Save metadata for future reuse
+      this.fileManager.saveMetadata(documentId, {
+        documentId,
+        documentTitle: chapters[0]?.title || 'Unknown',
+        totalChapters: chapters.length,
+        generatedAt: new Date().toISOString(),
+        chapters: audioFiles.map(af => ({
+          id: af.chapterId,
+          title: af.chapterTitle,
+          fileName: af.fileName,
+          filePath: af.filePath,
+          size: af.size
+        }))
+      });
+
+      // 6. Return success result
       reportProgress('complete', totalChapters, totalChapters, 'Processing complete!');
       return {
         documentId,
         totalChapters: chapters.length,
         audioFiles,
         processingTime: Date.now() - startTime,
-        success: true
+        success: true,
+        costEstimate
       };
 
     } catch (error) {
@@ -160,6 +230,16 @@ export class DocumentProcessor {
         error: error instanceof Error ? error.message : String(error)
       };
     }
+  }
+
+  private createCleanFileName(title: string): string {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, '') // Remove leading/trailing hyphens
+      .substring(0, 100); // Limit length
   }
 }
 

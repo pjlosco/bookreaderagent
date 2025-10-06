@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookReaderAgent - Interactive Audio Book Generator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 30px;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .tab:hover {
+            color: #667eea;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        input[type="url"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .chapter-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .chapter-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .chapter-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+        
+        .chapter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .chapter-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            margin-left: 20px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 30px;
+        }
+        
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .slider {
+            background-color: #28a745;
+        }
+        
+        input:checked + .slider:before {
+            transform: translateX(30px);
+        }
+        
+        .chapter-status {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .chapter-status.has-audio {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .chapter-status.no-audio {
+            color: #dc3545;
+        }
+        
+        .audio-player {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        audio {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .document-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .document-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .document-card:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        
+        .document-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .document-meta {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .text-preview {
+            max-height: 100px;
+            overflow: hidden;
+            color: #666;
+            font-size: 0.9em;
+            line-height: 1.6;
+            margin-top: 10px;
+            position: relative;
+        }
+        
+        .text-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(transparent, #f8f9fa);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 BookReaderAgent</h1>
+            <p>Convert Google Docs to high-quality audio with interactive chapter control</p>
+        </div>
+        
+        <div class="content">
+            <!-- Tab Navigation -->
+            <div class="tabs">
+                <div class="tab active" data-tab="new-document">New Document</div>
+                <div class="tab" data-tab="my-documents">My Documents</div>
+            </div>
+            
+            <!-- Tab 1: New Document -->
+            <div class="tab-content active" id="new-document">
+                <form id="documentForm">
+                    <div class="form-group">
+                        <label for="documentUrl">Google Docs URL or Document ID:</label>
+                        <input 
+                            type="text" 
+                            id="documentUrl" 
+                            placeholder="https://docs.google.com/document/d/your-document-id/edit"
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="btn" id="fetchBtn">Fetch Chapters</button>
+                </form>
+                
+                <div class="error" id="error"></div>
+                <div class="success" id="success"></div>
+                
+                <!-- Loading State -->
+                <div class="loading hidden" id="loading">
+                    <div class="spinner"></div>
+                    <p>Fetching document...</p>
+                </div>
+                
+                <!-- Chapter Selection -->
+                <div id="chapterSelection" class="hidden" style="margin-top: 30px;">
+                    <h2 id="documentTitle" style="margin-bottom: 20px; color: #333;">Document Chapters</h2>
+                    <p style="color: #666; margin-bottom: 20px;">Toggle chapters to generate or delete audio files. Changes are instant.</p>
+                    <div class="chapter-list" id="chapterList"></div>
+                </div>
+            </div>
+            
+            <!-- Tab 2: My Documents -->
+            <div class="tab-content" id="my-documents">
+                <div class="loading hidden" id="documentsLoading">
+                    <div class="spinner"></div>
+                    <p>Loading documents...</p>
+                </div>
+                
+                <div id="documentsList"></div>
+                
+                <div id="noDocuments" class="hidden" style="text-align: center; padding: 40px; color: #666;">
+                    <h3>No documents found</h3>
+                    <p style="margin-top: 10px;">Process your first document to get started!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 15px; color: #333;">Confirm Deletion</h3>
+            <p id="confirmMessage" style="color: #666; margin-bottom: 20px;">Are you sure you want to delete this audio file?</p>
+            <div class="modal-buttons">
+                <button class="btn btn-sm" id="cancelBtn">Cancel</button>
+                <button class="btn btn-sm btn-danger" id="confirmBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let currentDocumentId = null;
+        let currentChapters = [];
+        let pendingDeletion = null;
+        
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                
+                // Update tab styles
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabName).classList.add('active');
+                
+                // Load documents when switching to My Documents tab
+                if (tabName === 'my-documents') {
+                    loadDocuments();
+                }
+            });
+        });
+        
+        // Fetch chapters form
+        document.getElementById('documentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await fetchChapters();
+        });
+        
+        async function fetchChapters() {
+            const documentUrl = document.getElementById('documentUrl').value.trim();
+            
+            if (!documentUrl) {
+                showError('Please enter a Google Docs URL or Document ID');
+                return;
+            }
+            
+            try {
+                showLoading();
+                hideError();
+                hideSuccess();
+                hideChapterSelection();
+                
+                const response = await fetch('/api/books/fetch-chapters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ documentUrl })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to fetch chapters');
+                }
+                
+                currentDocumentId = data.documentId;
+                currentChapters = data.chapters;
+                
+                displayChapters(data);
+                hideLoading();
+                showSuccess(`Found ${data.totalChapters} chapters in "${data.documentTitle}"`);
+                
+            } catch (err) {
+                hideLoading();
+                showError(err.message);
+            }
+        }
+        
+        function displayChapters(data) {
+            const chapterList = document.getElementById('chapterList');
+            document.getElementById('documentTitle').textContent = data.documentTitle;
+            
+            chapterList.innerHTML = currentChapters.map((chapter, index) => `
+                <div class="chapter-card" data-chapter-index="${index}">
+                    <div class="chapter-header">
+                        <div class="chapter-title">${chapter.title}</div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" 
+                                   ${chapter.hasAudio ? 'checked' : ''} 
+                                   data-chapter-id="${chapter.id}"
+                                   data-chapter-title="${escapeHtml(chapter.title)}"
+                                   data-chapter-index="${index}">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="chapter-status ${chapter.hasAudio ? 'has-audio' : 'no-audio'}">
+                        ${chapter.hasAudio ? '✓ Audio generated' : '✗ No audio file'}
+                    </div>
+                    ${chapter.hasAudio ? `
+                        <div class="audio-player">
+                            <audio controls>
+                                <source src="/audio/${currentDocumentId}/${chapter.audioFile}" type="audio/mpeg">
+                            </audio>
+                            <a href="/audio/${currentDocumentId}/${chapter.audioFile}" 
+                               class="btn btn-sm btn-success" 
+                               download="${chapter.audioFile}"
+                               style="display: inline-block; text-decoration: none; margin-top: 10px;">
+                                Download Audio
+                            </a>
+                        </div>
+                    ` : ''}
+                    <div class="text-preview">
+                        ${escapeHtml(chapter.content.substring(0, 200))}...
+                    </div>
+                </div>
+            `).join('');
+            
+            // Add toggle event listeners
+            chapterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', handleToggleChange);
+            });
+            
+            showChapterSelection();
+        }
+        
+        async function handleToggleChange(e) {
+            const checkbox = e.target;
+            const chapterId = checkbox.dataset.chapterId;
+            const chapterTitle = checkbox.dataset.chapterTitle;
+            const chapterIndex = parseInt(checkbox.dataset.chapterIndex);
+            const chapter = currentChapters[chapterIndex];
+            
+            if (checkbox.checked) {
+                // Generate audio
+                await generateChapterAudio(chapterId, chapterTitle, chapter.content, checkbox);
+            } else {
+                // Show confirmation dialog before deleting
+                showConfirmationDialog(chapterId, chapterTitle, checkbox);
+            }
+        }
+        
+        async function generateChapterAudio(chapterId, chapterTitle, chapterContent, checkbox) {
+            try {
+                checkbox.disabled = true;
+                const card = checkbox.closest('.chapter-card');
+                const statusDiv = card.querySelector('.chapter-status');
+                statusDiv.textContent = '⏳ Generating audio...';
+                statusDiv.className = 'chapter-status';
+                
+                const response = await fetch('/api/books/generate-chapter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        documentId: currentDocumentId,
+                        chapterId,
+                        chapterTitle,
+                        chapterContent
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to generate audio');
+                }
+                
+                // Update UI with audio player
+                statusDiv.textContent = '✓ Audio generated';
+                statusDiv.className = 'chapter-status has-audio';
+                
+                // Add audio player
+                const audioPlayer = document.createElement('div');
+                audioPlayer.className = 'audio-player';
+                audioPlayer.innerHTML = `
+                    <audio controls>
+                        <source src="${data.audioFile.url}" type="audio/mpeg">
+                    </audio>
+                    <a href="${data.audioFile.url}" 
+                       class="btn btn-sm btn-success" 
+                       download="${data.audioFile.fileName}"
+                       style="display: inline-block; text-decoration: none; margin-top: 10px;">
+                        Download Audio
+                    </a>
+                `;
+                card.insertBefore(audioPlayer, card.querySelector('.text-preview'));
+                
+                // Update chapter data
+                currentChapters[parseInt(checkbox.dataset.chapterIndex)].hasAudio = true;
+                currentChapters[parseInt(checkbox.dataset.chapterIndex)].audioFile = data.audioFile.fileName;
+                
+                showSuccess(`Audio generated for "${chapterTitle}"`);
+                
+            } catch (err) {
+                showError(err.message);
+                checkbox.checked = false;
+            } finally {
+                checkbox.disabled = false;
+            }
+        }
+        
+        function showConfirmationDialog(chapterId, chapterTitle, checkbox) {
+            pendingDeletion = { chapterId, chapterTitle, checkbox };
+            
+            document.getElementById('confirmMessage').textContent = 
+                `Are you sure you want to delete the audio file for "${chapterTitle}"?`;
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+        
+        document.getElementById('cancelBtn').addEventListener('click', () => {
+            if (pendingDeletion) {
+                pendingDeletion.checkbox.checked = true; // Revert toggle
+                pendingDeletion = null;
+            }
+            document.getElementById('confirmModal').style.display = 'none';
+        });
+        
+        document.getElementById('confirmBtn').addEventListener('click', async () => {
+            if (pendingDeletion) {
+                await deleteChapterAudio(
+                    pendingDeletion.chapterId,
+                    pendingDeletion.chapterTitle,
+                    pendingDeletion.checkbox
+                );
+                pendingDeletion = null;
+            }
+            document.getElementById('confirmModal').style.display = 'none';
+        });
+        
+        async function deleteChapterAudio(chapterId, chapterTitle, checkbox) {
+            try {
+                checkbox.disabled = true;
+                const card = checkbox.closest('.chapter-card');
+                const statusDiv = card.querySelector('.chapter-status');
+                statusDiv.textContent = '⏳ Deleting audio...';
+                
+                const response = await fetch(`/api/books/audio/${currentDocumentId}/${chapterId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to delete audio');
+                }
+                
+                // Update UI
+                statusDiv.textContent = '✗ No audio file';
+                statusDiv.className = 'chapter-status no-audio';
+                
+                // Remove audio player
+                const audioPlayer = card.querySelector('.audio-player');
+                if (audioPlayer) {
+                    audioPlayer.remove();
+                }
+                
+                // Update chapter data
+                const chapterIndex = parseInt(checkbox.dataset.chapterIndex);
+                currentChapters[chapterIndex].hasAudio = false;
+                currentChapters[chapterIndex].audioFile = null;
+                
+                showSuccess(`Audio deleted for "${chapterTitle}"`);
+                
+            } catch (err) {
+                showError(err.message);
+                checkbox.checked = true; // Revert toggle
+            } finally {
+                checkbox.disabled = false;
+            }
+        }
+        
+        async function loadDocuments() {
+            const documentsLoading = document.getElementById('documentsLoading');
+            const documentsList = document.getElementById('documentsList');
+            const noDocuments = document.getElementById('noDocuments');
+            
+            try {
+                documentsLoading.classList.remove('hidden');
+                documentsList.innerHTML = '';
+                noDocuments.classList.add('hidden');
+                
+                const response = await fetch('/api/books/documents');
+                const data = await response.json();
+                
+                documentsLoading.classList.add('hidden');
+                
+                if (data.documents && data.documents.length > 0) {
+                    documentsList.innerHTML = data.documents.map(doc => `
+                        <div class="document-card" data-document-id="${doc.documentId}">
+                            <div class="document-title">${escapeHtml(doc.documentTitle)}</div>
+                            <div class="document-meta">
+                                <p>📊 ${doc.totalChapters} chapters | 🎵 ${doc.chaptersWithAudio} with audio</p>
+                                <p>📅 Generated: ${new Date(doc.generatedAt).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    // Add click handlers
+                    documentsList.querySelectorAll('.document-card').forEach(card => {
+                        card.addEventListener('click', () => {
+                            const docId = card.dataset.documentId;
+                            loadDocumentChapters(docId);
+                        });
+                    });
+                } else {
+                    noDocuments.classList.remove('hidden');
+                }
+                
+            } catch (err) {
+                documentsLoading.classList.add('hidden');
+                showError('Failed to load documents');
+            }
+        }
+        
+        async function loadDocumentChapters(documentId) {
+            // Switch to New Document tab and load this document
+            document.querySelector('[data-tab="new-document"]').click();
+            
+            // Construct URL from document ID
+            const documentUrl = `https://docs.google.com/document/d/${documentId}/`;
+            document.getElementById('documentUrl').value = documentUrl;
+            
+            // Fetch chapters
+            await fetchChapters();
+        }
+        
+        // Utility functions
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+        
+        function showChapterSelection() {
+            document.getElementById('chapterSelection').classList.remove('hidden');
+        }
+        
+        function hideChapterSelection() {
+            document.getElementById('chapterSelection').classList.add('hidden');
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 5000);
+        }
+        
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            setTimeout(() => successDiv.style.display = 'none', 5000);
+        }
+        
+        function hideSuccess() {
+            document.getElementById('success').style.display = 'none';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('confirmModal');
+            if (e.target === modal) {
+                if (pendingDeletion) {
+                    pendingDeletion.checkbox.checked = true;
+                    pendingDeletion = null;
+                }
+                modal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
