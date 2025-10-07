@@ -285,24 +285,32 @@ export class BookController {
       // Fetch chapters without generating audio
       const chapters = await fetchDocumentWithTabChapters(documentId);
 
-      // Check which chapters already have audio files
+        // Check which chapters already have audio files
       const fileManager = new FileManager(path.join('./audio', documentId));
+      const metadata = fileManager.loadMetadata(documentId);
+      
       const chaptersWithStatus = chapters.map(chapter => {
         const cleanFileName = this.createCleanFileName(chapter.title);
         const audioPath = path.join('./audio', documentId, `${cleanFileName}.mp3`);
         const hasAudio = fs.existsSync(audioPath);
         
+        // Get content from metadata if available, otherwise use fetched content
+        let content = chapter.content;
+        if (metadata) {
+          const metadataChapter = metadata.chapters.find(c => c.id === chapter.id);
+          if (metadataChapter?.content) {
+            content = metadataChapter.content;
+          }
+        }
+        
         return {
           id: chapter.id,
           title: chapter.title,
-          content: chapter.content,
+          content: content,
           hasAudio,
           audioFile: hasAudio ? `${cleanFileName}.mp3` : null
         };
       });
-
-      // Load metadata if it exists
-      const metadata = fileManager.loadMetadata(documentId);
 
       res.json({
         documentId,
@@ -353,13 +361,14 @@ export class BookController {
         // Check if chapter already exists in metadata
         const existingChapterIndex = metadata.chapters.findIndex(c => c.id === chapterId);
         if (existingChapterIndex >= 0) {
-          // Update existing chapter
+          // Update existing chapter, preserving content
           metadata.chapters[existingChapterIndex] = {
             id: chapterId,
             title: chapterTitle,
             fileName: audioFile.fileName,
             filePath: audioFile.filePath,
-            size: audioFile.size
+            size: audioFile.size,
+            content: chapterContent // Save content for read-along feature
           };
         } else {
           // Add new chapter
@@ -368,7 +377,8 @@ export class BookController {
             title: chapterTitle,
             fileName: audioFile.fileName,
             filePath: audioFile.filePath,
-            size: audioFile.size
+            size: audioFile.size,
+            content: chapterContent // Save content for read-along feature
           });
         }
         fileManager.saveMetadata(documentId, metadata);
@@ -384,7 +394,8 @@ export class BookController {
             title: chapterTitle,
             fileName: audioFile.fileName,
             filePath: audioFile.filePath,
-            size: audioFile.size
+            size: audioFile.size,
+            content: chapterContent // Save content for read-along feature
           }]
         });
       }

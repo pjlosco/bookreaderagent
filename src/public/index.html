@@ -372,6 +372,73 @@
             height: 30px;
             background: linear-gradient(transparent, #f8f9fa);
         }
+        
+        .read-along-text {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            color: #333;
+            font-size: 1.05em;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            border-left: 4px solid #667eea;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.05);
+        }
+        
+        .read-along-text.playing {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .read-along-text::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .read-along-text::-webkit-scrollbar-track {
+            background: #e0e0e0;
+            border-radius: 4px;
+        }
+        
+        .read-along-text::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+        
+        .read-along-text::-webkit-scrollbar-thumb:hover {
+            background: #5568d3;
+        }
+        
+        .read-along-text .sentence {
+            display: inline;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        
+        .read-along-text .sentence:hover {
+            background-color: rgba(102, 126, 234, 0.15);
+        }
+        
+        .read-along-text .sentence.active {
+            background-color: rgba(102, 126, 234, 0.3);
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -454,6 +521,62 @@
         let currentDocumentId = null;
         let currentChapters = [];
         let pendingDeletion = null;
+        
+        // Enhanced read-along state
+        const audioTimers = new Map(); // Track active timers per audio player
+        
+        // Estimate speaking rate (words per minute for text-to-speech)
+        const WORDS_PER_MINUTE = 150; // Average TTS speed
+        const MS_PER_WORD = (60 / WORDS_PER_MINUTE) * 1000;
+        
+        // Helper function to split text into sentences
+        function splitIntoSentences(text) {
+            // Split on sentence boundaries (., !, ?) followed by space or newline
+            const sentences = text.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g) || [text];
+            return sentences.map(s => s.trim()).filter(s => s.length > 0);
+        }
+        
+        // Helper function to count words in text
+        function countWords(text) {
+            return text.trim().split(/\s+/).length;
+        }
+        
+        // Helper function to calculate timing for sentences
+        function calculateSentenceTiming(sentences) {
+            const timings = [];
+            let currentTime = 0;
+            
+            sentences.forEach(sentence => {
+                const wordCount = countWords(sentence);
+                const duration = wordCount * MS_PER_WORD;
+                
+                timings.push({
+                    sentence,
+                    startTime: currentTime,
+                    endTime: currentTime + duration,
+                    duration
+                });
+                
+                currentTime += duration;
+            });
+            
+            return timings;
+        }
+        
+        // Helper function to wrap text in sentence spans for read-along
+        function wrapSentencesInSpans(text) {
+            const sentences = splitIntoSentences(text);
+            return sentences.map((sentence, index) => 
+                `<span class="sentence" data-sentence-index="${index}">${escapeHtml(sentence)} </span>`
+            ).join('');
+        }
+        
+        // Helper function to scroll element into view smoothly
+        function scrollToElement(element) {
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
         
         // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {
@@ -544,20 +667,24 @@
                     </div>
                     ${chapter.hasAudio ? `
                         <div class="audio-player">
-                            <audio controls>
+                            <audio controls data-chapter-index="${index}">
                                 <source src="/audio/${currentDocumentId}/${chapter.audioFile}" type="audio/mpeg">
                             </audio>
                             <a href="/audio/${currentDocumentId}/${chapter.audioFile}" 
                                class="btn btn-sm btn-success" 
                                download="${chapter.audioFile}"
                                style="display: inline-block; text-decoration: none; margin-top: 10px;">
-                                Download Audio
+                                ⬇️ Download Audio
                             </a>
                         </div>
-                    ` : ''}
-                    <div class="text-preview">
-                        ${escapeHtml(chapter.content.substring(0, 200))}...
-                    </div>
+                        <div class="read-along-text" data-chapter-index="${index}">
+                            ${wrapSentencesInSpans(chapter.content)}
+                        </div>
+                    ` : `
+                        <div class="text-preview">
+                            ${escapeHtml(chapter.content.substring(0, 200))}...
+                        </div>
+                    `}
                 </div>
             `).join('');
             
@@ -566,7 +693,164 @@
                 checkbox.addEventListener('change', handleToggleChange);
             });
             
+            // Add audio player event listeners for read-along feature
+            setupAudioReadAlong();
+            
             showChapterSelection();
+        }
+        
+        // Setup audio read-along functionality with enhanced features
+        function setupAudioReadAlong() {
+            const audioPlayers = document.querySelectorAll('audio');
+            
+            audioPlayers.forEach(audio => {
+                const chapterIndex = audio.dataset.chapterIndex;
+                const readAlongText = document.querySelector(`.read-along-text[data-chapter-index="${chapterIndex}"]`);
+                
+                if (readAlongText) {
+                    // Get all sentences in this chapter
+                    const sentenceElements = readAlongText.querySelectorAll('.sentence');
+                    const chapter = currentChapters[parseInt(chapterIndex)];
+                    
+                    if (chapter && sentenceElements.length > 0) {
+                        // Calculate timing for sentences
+                        const sentences = Array.from(sentenceElements).map(el => el.textContent.trim());
+                        const timings = calculateSentenceTiming(sentences);
+                        
+                        // Store timings on the audio element
+                        audio.sentenceTimings = timings;
+                        
+                        // Setup click-to-jump on sentences
+                        sentenceElements.forEach((sentenceEl, index) => {
+                            sentenceEl.addEventListener('click', () => {
+                                if (!audio.paused) {
+                                    const timing = timings[index];
+                                    if (timing) {
+                                        // Calculate percentage of audio to jump to
+                                        const totalDuration = audio.duration * 1000; // Convert to ms
+                                        const percentage = timing.startTime / timings[timings.length - 1].endTime;
+                                        audio.currentTime = audio.duration * percentage;
+                                    }
+                                }
+                            });
+                        });
+                    }
+                    
+                    // Show text when playing
+                    audio.addEventListener('play', () => {
+                        // Pause all other audio players
+                        pauseOtherAudioPlayers(audio);
+                        
+                        // Hide all other read-along texts
+                        document.querySelectorAll('.read-along-text').forEach(text => {
+                            text.classList.remove('playing');
+                        });
+                        
+                        // Show this chapter's text
+                        readAlongText.classList.add('playing');
+                        
+                        // Start highlighting
+                        startHighlighting(audio, readAlongText);
+                    });
+                    
+                    // Hide text when paused
+                    audio.addEventListener('pause', () => {
+                        readAlongText.classList.remove('playing');
+                        stopHighlighting(audio);
+                    });
+                    
+                    // Hide text when ended
+                    audio.addEventListener('ended', () => {
+                        readAlongText.classList.remove('playing');
+                        stopHighlighting(audio);
+                        
+                        // Clear all highlights
+                        readAlongText.querySelectorAll('.sentence.active').forEach(el => {
+                            el.classList.remove('active');
+                        });
+                    });
+                    
+                    // Handle seeking
+                    audio.addEventListener('seeked', () => {
+                        if (!audio.paused) {
+                            stopHighlighting(audio);
+                            startHighlighting(audio, readAlongText);
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Start highlighting sentences as audio plays
+        function startHighlighting(audio, readAlongText) {
+            const sentenceElements = readAlongText.querySelectorAll('.sentence');
+            const timings = audio.sentenceTimings;
+            
+            if (!timings || sentenceElements.length === 0) return;
+            
+            // Clear any existing timer
+            stopHighlighting(audio);
+            
+            // Get current position in audio (as percentage)
+            const updateHighlight = () => {
+                if (audio.paused) return;
+                
+                const currentAudioTime = audio.currentTime * 1000; // Convert to ms
+                const totalEstimatedTime = timings[timings.length - 1].endTime;
+                const audioDuration = audio.duration * 1000;
+                
+                // Scale estimated time to actual audio duration
+                const scaleFactor = audioDuration / totalEstimatedTime;
+                
+                // Find which sentence should be highlighted
+                let activeSentenceIndex = -1;
+                for (let i = 0; i < timings.length; i++) {
+                    const scaledStartTime = timings[i].startTime * scaleFactor;
+                    const scaledEndTime = timings[i].endTime * scaleFactor;
+                    
+                    if (currentAudioTime >= scaledStartTime && currentAudioTime < scaledEndTime) {
+                        activeSentenceIndex = i;
+                        break;
+                    }
+                }
+                
+                // Update highlights
+                sentenceElements.forEach((el, index) => {
+                    if (index === activeSentenceIndex) {
+                        el.classList.add('active');
+                        // Auto-scroll to this sentence
+                        scrollToElement(el);
+                    } else {
+                        el.classList.remove('active');
+                    }
+                });
+            };
+            
+            // Update every 100ms for smooth highlighting
+            const timerId = setInterval(updateHighlight, 100);
+            audioTimers.set(audio, timerId);
+            
+            // Initial update
+            updateHighlight();
+        }
+        
+        // Stop highlighting
+        function stopHighlighting(audio) {
+            const timerId = audioTimers.get(audio);
+            if (timerId) {
+                clearInterval(timerId);
+                audioTimers.delete(audio);
+            }
+        }
+        
+        // Pause all audio players except the current one
+        function pauseOtherAudioPlayers(currentAudio) {
+            const audioPlayers = document.querySelectorAll('audio');
+            audioPlayers.forEach(audio => {
+                if (audio !== currentAudio && !audio.paused) {
+                    audio.pause();
+                }
+            });
         }
         
         async function handleToggleChange(e) {
@@ -614,25 +898,44 @@
                 statusDiv.textContent = '✓ Audio generated';
                 statusDiv.className = 'chapter-status has-audio';
                 
+                const chapterIndex = parseInt(checkbox.dataset.chapterIndex);
+                
                 // Add audio player
                 const audioPlayer = document.createElement('div');
                 audioPlayer.className = 'audio-player';
                 audioPlayer.innerHTML = `
-                    <audio controls>
+                    <audio controls data-chapter-index="${chapterIndex}">
                         <source src="${data.audioFile.url}" type="audio/mpeg">
                     </audio>
                     <a href="${data.audioFile.url}" 
                        class="btn btn-sm btn-success" 
                        download="${data.audioFile.fileName}"
                        style="display: inline-block; text-decoration: none; margin-top: 10px;">
-                        Download Audio
+                        ⬇️ Download Audio
                     </a>
                 `;
-                card.insertBefore(audioPlayer, card.querySelector('.text-preview'));
+                
+                // Remove text preview since we're showing read-along text instead
+                const textPreview = card.querySelector('.text-preview');
+                if (textPreview) {
+                    textPreview.remove();
+                }
+                
+                card.appendChild(audioPlayer);
+                
+                // Add read-along text display with sentence wrapping
+                const readAlongDiv = document.createElement('div');
+                readAlongDiv.className = 'read-along-text';
+                readAlongDiv.setAttribute('data-chapter-index', chapterIndex);
+                readAlongDiv.innerHTML = wrapSentencesInSpans(chapterContent);
+                card.appendChild(readAlongDiv);
+                
+                // Setup audio read-along for the new player
+                setupAudioReadAlong();
                 
                 // Update chapter data
-                currentChapters[parseInt(checkbox.dataset.chapterIndex)].hasAudio = true;
-                currentChapters[parseInt(checkbox.dataset.chapterIndex)].audioFile = data.audioFile.fileName;
+                currentChapters[chapterIndex].hasAudio = true;
+                currentChapters[chapterIndex].audioFile = data.audioFile.fileName;
                 
                 showSuccess(`Audio generated for "${chapterTitle}"`);
                 
@@ -698,6 +1001,19 @@
                 if (audioPlayer) {
                     audioPlayer.remove();
                 }
+                
+                // Remove read-along text
+                const readAlongText = card.querySelector('.read-along-text');
+                if (readAlongText) {
+                    readAlongText.remove();
+                }
+                
+                // Add back the text preview
+                const textPreview = document.createElement('div');
+                textPreview.className = 'text-preview';
+                const chapter = currentChapters[chapterIndex];
+                textPreview.innerHTML = `${escapeHtml(chapter.content.substring(0, 200))}...`;
+                card.appendChild(textPreview);
                 
                 // Update chapter data
                 const chapterIndex = parseInt(checkbox.dataset.chapterIndex);

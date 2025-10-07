@@ -13,6 +13,7 @@ export interface AudioMetadata {
     fileName: string;
     filePath: string;
     size: number;
+    content?: string; // Chapter text content for read-along feature
   }>;
 }
 
