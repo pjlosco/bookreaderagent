@@ -200,11 +200,59 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [ ] Playlist creation (custom chapter orders)
 - [ ] Share and collaborate features
 
+### Phase 6: Code Quality & Testing Audit (Quality Assurance)
+- [ ] **Function audit** - Review all functions for correctness and edge cases
+- [ ] **Comment audit** - Ensure all functions have comprehensive JSDoc comments
+- [ ] **Test coverage expansion** - Increase from 92.82% to 95%+ coverage
+- [ ] **Integration tests** - End-to-end workflow testing
+- [ ] **Error handling audit** - Verify all error paths are handled
+- [ ] **Performance profiling** - Identify and fix bottlenecks
+- [ ] **Code consistency** - Ensure naming conventions followed
+- [ ] **Security audit** - Check for vulnerabilities (API keys, input validation)
+- [ ] **Edge case testing** - Empty chapters, special characters, very long text
+- [ ] **Browser compatibility** - Test on Chrome, Firefox, Safari, Edge
+- [ ] **Accessibility audit** - WCAG 2.1 compliance check
+- [ ] **Documentation verification** - Ensure README matches actual implementation
+
+### Phase 7: Cloud Storage & Multi-Format Support (Scalability)
+- [ ] **Google Drive integration** - Store audio files in Google Drive instead of local filesystem
+- [ ] **Clerk authentication** - Easy user login/signup system with OAuth
+- [ ] **User file management** - Each user has their own Drive folder
+- [ ] **Cross-application access** - Audio files accessible from multiple apps/devices
+- [ ] **PDF support** - Extract and process PDF documents
+- [ ] **EPUB support** - Handle ebook formats
+- [ ] **Word document support** - Process .docx files
+- [ ] **Plain text support** - Handle .txt files
+- [ ] **Web scraping** - Extract content from URLs (articles, blogs)
+- [ ] **File upload** - Direct file upload instead of just URLs
+- [ ] **Cloud metadata storage** - Store progress/metadata in database (Firestore/Supabase)
+- [ ] **Sharing & permissions** - Share generated audio with others
+- [ ] **Storage quota management** - Track and limit user storage
+- [ ] **Automatic cleanup** - Delete old/unused audio files
+
+### Phase 8: Mobile Application (Mobile-First Experience)
+- [ ] **React Native setup** - Cross-platform mobile app (iOS + Android)
+- [ ] **Onboarding flow** - Guided setup for API credentials and permissions
+- [ ] **Credential management** - Secure storage of API keys and tokens
+- [ ] **Profile area** - Edit user settings, API credentials, preferences
+- [ ] **Voice preference UI** - Select and preview voices in-app
+- [ ] **Document import** - Upload or link documents from mobile
+- [ ] **Audio playback** - Native mobile audio player with background playback
+- [ ] **Download management** - Offline audio storage on device
+- [ ] **Read-along view** - Mobile-optimized text highlighting
+- [ ] **Speed control** - Touch-friendly speed slider
+- [ ] **Progress sync** - Sync progress across web and mobile
+- [ ] **Push notifications** - Notify when audio generation completes
+- [ ] **CarPlay/Android Auto** - Integration for in-car listening
+- [ ] **Siri/Google Assistant** - Voice commands for playback control
+- [ ] **Lock screen controls** - Standard mobile media controls
+- [ ] **Headphone controls** - Play/pause/skip with headphone buttons
+
 ## 🗺️ Roadmap & Next Steps
 
-### 🎯 Immediate Priorities (Next 2-4 Weeks)
+### 🎯 Immediate Priorities
 
-#### 1. AI Question & Answer System (High Priority)
+#### Phase 4: AI Question & Answer System (Next - 3-4 weeks)
 **Goal:** Enable users to ask questions about content while listening
 
 **Tasks:**
@@ -216,67 +264,73 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [ ] Conversation history within session
 - [ ] Response streaming for better UX
 
-**Why Now:** This is the core differentiator - interactive audiobook with AI tutor
+**Why Now:** Core differentiator - interactive audiobook with AI tutor
 
-#### 2. Voice Selection UI (Medium Priority)
-**Goal:** Let users choose voices from the web interface
+#### Phase 6: Code Quality & Testing Audit (After Phase 4 - 1-2 weeks)
+**Goal:** Ensure all code is production-ready and well-tested
 
 **Tasks:**
+- [ ] Audit all functions for correctness and edge cases
+- [ ] Add comprehensive JSDoc comments to all functions
+- [ ] Expand test coverage from 92.82% to 95%+
+- [ ] Add integration tests for full workflows
+- [ ] Security audit (API keys, input validation, XSS protection)
+- [ ] Performance profiling and optimization
+- [ ] Browser compatibility testing
+- [ ] Accessibility audit (WCAG 2.1)
+
+**Why Then:** Before scaling to more users, ensure code quality is excellent
+
+#### Phase 5: UI Polish (Can be done in parallel - 1-2 weeks)
+**Priority:** Medium | **Can start alongside Phase 4**
+
+**Voice Selection UI:**
 - [ ] Create voice preview samples for each option
 - [ ] Add dropdown/card selector to UI
 - [ ] Allow voice selection before generation
-- [ ] Save voice preference per document
-- [ ] Add voice comparison feature
-- [ ] Update metadata to track voice used
 
-**Why Now:** Foundation exists (API works), just need UI layer
-
-#### 3. Enhanced Chapter Navigation (Medium Priority)
-**Goal:** Improve navigation for long documents
-
-**Tasks:**
+**Enhanced Navigation:**
 - [ ] Collapsible chapter list for long books
 - [ ] Search/filter chapters by title
-- [ ] Chapter preview on hover
-- [ ] Keyboard shortcuts (next/prev chapter)
+- [ ] Keyboard shortcuts (n/p for next/prev chapter)
 - [ ] Table of contents view
-- [ ] Mini-map of document progress
 
-**Why Now:** 30-chapter documents are hard to navigate
-
-#### 4. Performance Optimization (Low Priority)
-**Goal:** Make the system faster and more efficient
-
-**Tasks:**
-- [ ] Parallel chunk generation (generate multiple at once)
+**Performance (Optional):**
+- [ ] Parallel chunk generation (4x faster for large chapters)
 - [ ] Streaming audio delivery (play while generating)
-- [ ] Caching improvements
-- [ ] Database instead of JSON files
-- [ ] CDN integration for audio files
 
-**Why Now:** Current system works but could be faster
+**Why These:** Quick wins that improve UX while building AI features
 
-### 📅 Mid-Term Goals (2-3 Months)
+### 📅 Mid-Term Goals (3-6 Months)
 
-#### Multi-Document Features
-- Batch processing queue
-- Document comparison/diff
-- Cross-document search
-- Playlist creation
+#### Phase 7: Cloud Storage & Multi-Format Support
+**Timeline:** 2-3 months | **Enables:** Multi-user scalability
 
-#### Mobile Experience
-- Responsive design optimization
-- Touch-friendly controls
-- Mobile-first audio player
-- Offline support with service workers
+**Key Features:**
+- Google Drive integration for audio storage (eliminates local filesystem limits)
+- Clerk authentication system (easy user login/signup)
+- PDF, EPUB, DOCX, and plain text support (beyond just Google Docs)
+- Cloud metadata storage (Firestore or Supabase)
+- File sharing and permissions
 
-#### Collaboration & Sharing
-- Share progress with others
-- Public/private document links
-- Collaborative annotations
-- Team/classroom features
+**Why Phase 7:** Enables true multi-user product with diverse document support
+
+**Dependencies:** Requires user authentication before multiple users can use system
 
 ### 🚀 Long-Term Vision (6-12 Months)
+
+#### Phase 8: Mobile Application
+**Timeline:** 3-4 months | **Enables:** Mobile-first experience
+
+**Key Features:**
+- React Native cross-platform app (iOS + Android)
+- Onboarding flow for API credentials setup
+- Profile area for user settings and preferences
+- Native mobile audio with background playback
+- Progress sync between web and mobile
+- CarPlay/Android Auto integration
+
+**Why Phase 8:** Expands to mobile users, completes the ecosystem
 
 #### Authentication Evolution
 - **Phase 1**: Service Account (Current) ✅
@@ -477,14 +531,19 @@ Based on current completion (68% - Phases 1-3 done), here are the recommended pr
 - Collapsible chapter list
 - Timeline: 1 week
 
-**Current Features:**
-- ✅ Core audio generation with voice selection
+**What's Working Now:**
+- ✅ Core audio generation with voice selection (Phase 1-3: 100%)
 - ✅ Large chapter support (auto-chunking + FFmpeg merging)  
 - ✅ Read-along with sentence highlighting
 - ✅ Progress tracking & resume
 - ✅ Playback speed control (0.75x-2.0x)
 
-**Next Major Feature:** AI Q&A would create a truly unique product with high revenue potential ($15+ per book vs $5 audio-only)
+**Development Sequence:**
+1. **Phase 4 (Next):** AI Q&A - Creates unique "interactive tutor" value prop
+2. **Phase 5 (Parallel):** UI polish - Voice selector, navigation improvements
+3. **Phase 6 (Before scaling):** Code audit - Ensure quality before growth
+4. **Phase 7 (Scaling):** Cloud storage + multi-format - Enable multi-user
+5. **Phase 8 (Platform expansion):** Mobile app - Complete the ecosystem
 
 ---
 
