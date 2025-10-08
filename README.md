@@ -4,7 +4,24 @@ An intelligent AI agent that converts Google Docs into high-quality audio and pr
 
 ## ✨ Recent Accomplishments
 
-### Interactive Chapter Management (Latest)
+### Karaoke-Style Read-Along (Latest)
+- **Synchronized text display** — Shows chapter text only while audio is playing
+- **Sentence highlighting** — Active sentence highlighted in purple as audio progresses
+- **Auto-scroll tracking** — Text scrolls within container to follow audio (no page lock)
+- **Click-to-jump** — Click any sentence to jump to that position in audio
+- **Single-track playback** — Only one audio plays at a time, others auto-pause
+- **Smart timing estimation** — Word-based timing scaled to actual audio duration
+
+### Progress Tracking & Management
+- **Chapter completion tracking** — Automatic completion badges when 95% listened
+- **Document-level progress** — Overall percentage and chapter count display
+- **Save/resume playback** — Continues from last position with resume button
+- **Visual progress bars** — Real-time progress updates every 500ms
+- **Listening time tracking** — Cumulative time spent on each chapter
+- **localStorage persistence** — Progress survives browser restarts
+- **Data management** — Clear progress for chapters, documents, or all data
+
+### Interactive Chapter Management
 - **Tab-based chapter detection** — Properly parses Google Docs tabs (4 tabs = 4 chapters, not 8 subsections)
 - **Interactive UI** — Toggle switches to generate/delete audio for individual chapters
 - **Document library** — View and manage all processed Google Docs
@@ -103,7 +120,7 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 
 ## 📋 Implementation Status
 
-### Phase 1: Basic TTS (In Progress)
+### Phase 1: Core Audio & Interface ✅ (Completed)
 - [x] Project setup with TypeScript and Jest
 - [x] Google Docs URL parsing and document ID extraction
 - [x] Google Docs API integration setup
@@ -124,10 +141,25 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [x] **Text cleaning for TTS** - Removes markdown, normalizes whitespace, deduplicates titles
 - [x] **British English Neural2 voice** - Premium quality female voice (en-GB-Neural2-A)
 - [x] **Clean filename generation** - Uses chapter titles for intuitive file names
-- [x] MP3 download functionality (individual chapters)
+- [x] **MP3 download functionality** - Individual chapter downloads with icons
 
-### Phase 2: AI Agent Features (Planned)
-- [ ] **Chapter-aware audio position tracking** - Track position within current chapter
+### Phase 2: Read-Along & Progress Tracking ✅ (Completed)
+- [x] **Karaoke-style read-along** - Text displays synchronized with audio playback
+- [x] **Sentence-level highlighting** - Active sentence highlighted as audio plays
+- [x] **Auto-scroll within container** - Smooth scrolling without page lock
+- [x] **Click-to-jump navigation** - Click sentences to seek to that position
+- [x] **Single-track playback** - Only one audio plays at a time
+- [x] **Chapter completion tracking** - Automatic completion at 95% listened
+- [x] **Progress bars** - Real-time visual progress (updates every 500ms)
+- [x] **Document-level progress** - Overall completion percentage display
+- [x] **Save/resume positions** - Continue from where you left off
+- [x] **Listening time tracking** - Track cumulative time per chapter
+- [x] **localStorage persistence** - Progress survives browser restarts
+- [x] **Progress management** - Clear data for chapters, documents, or everything
+- [x] **Resume buttons** - Quick resume with saved position percentage
+
+### Phase 3: AI Agent Features (Planned)
+- [ ] **Interactive Q&A during playback** - Pause to ask questions about content
 - [ ] **Cross-chapter context** - AI can reference content from other chapters
 - [ ] Document chunking with timestamps per chapter
 - [ ] Vector embeddings for semantic search across all chapters
@@ -137,13 +169,15 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [ ] Conversation history management
 - [ ] Real-time WebSocket communication
 
-### Phase 3: Enhanced Features (Future)
-- [ ] Multiple voice selection
-- [ ] Audio speed control
-- [ ] Chapter/section navigation
+### Phase 4: Enhanced Features (Future)
+- [ ] Multiple voice selection UI
+- [ ] Audio speed control (0.5x - 2.0x)
+- [ ] Advanced chapter navigation
 - [ ] Batch processing for multiple documents
 - [ ] Mobile app interface
 - [ ] Offline mode with cached content
+- [ ] Bookmarking and annotations
+- [ ] Export progress reports
 
 ## 🗺️ Roadmap
 
@@ -184,7 +218,46 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - `en-GB-Wavenet-C` — Excellent clarity
 - `en-GB-Wavenet-F` — Professional and engaging
 
-To change the voice, update `src/services/audioGenerator.ts` line 53.
+### Changing Voices
+
+**Via API (Recommended):**
+```bash
+# When processing a document
+curl -X POST http://localhost:3000/api/books/process \
+  -H "Content-Type: application/json" \
+  -d '{
+    "documentUrl": "YOUR_GOOGLE_DOC_URL",
+    "voice": {
+      "languageCode": "en-GB",
+      "name": "en-GB-Wavenet-C",
+      "ssmlGender": "FEMALE"
+    }
+  }'
+
+# When generating a single chapter
+curl -X POST http://localhost:3000/api/books/generate-chapter \
+  -H "Content-Type: application/json" \
+  -d '{
+    "documentId": "YOUR_DOCUMENT_ID",
+    "chapterId": "chapter-1",
+    "chapterTitle": "Chapter 1",
+    "chapterContent": "Your content here...",
+    "voice": {
+      "languageCode": "en-GB",
+      "name": "en-GB-Neural2-F",
+      "ssmlGender": "FEMALE"
+    },
+    "audioConfig": {
+      "audioEncoding": "MP3",
+      "speakingRate": 1.0,
+      "pitch": 0.0,
+      "volumeGainDb": 0.0
+    }
+  }'
+```
+
+**Via Code:**
+Update the default voice in `src/services/audioGenerator.ts` line 53.
 
 ## 🎵 Audio Quality
 

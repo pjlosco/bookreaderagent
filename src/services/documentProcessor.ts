@@ -168,10 +168,21 @@ export class DocumentProcessor {
         } else {
           // Generate new audio
           reportProgress('generating', i + 1, totalChapters, `Generating audio for: ${chapter.title}`);
+          
+          // Prepare TTS options from processing options
+          const ttsOptions: TTSOptions = {};
+          if (options.voice) {
+            ttsOptions.voice = options.voice;
+          }
+          if (options.audioConfig) {
+            ttsOptions.audioConfig = options.audioConfig;
+          }
+          
           audioFile = await this.audioGenerator.generateChapterAudio(
             chapter.title,
             chapter.content,
-            chapter.id
+            chapter.id,
+            ttsOptions
           );
           console.log(`Generated new audio: ${audioFile.fileName}`);
         }

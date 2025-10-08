@@ -286,7 +286,7 @@ export class BookController {
       const chapters = await fetchDocumentWithTabChapters(documentId);
 
         // Check which chapters already have audio files
-      const fileManager = new FileManager(path.join('./audio', documentId));
+      const fileManager = new FileManager('./audio');
       const metadata = fileManager.loadMetadata(documentId);
       
       const chaptersWithStatus = chapters.map(chapter => {
@@ -331,7 +331,7 @@ export class BookController {
 
   async generateChapterAudio(req: Request, res: Response): Promise<void> {
     try {
-      const { documentId, chapterId, chapterTitle, chapterContent } = req.body;
+      const { documentId, chapterId, chapterTitle, chapterContent, voice, audioConfig } = req.body;
 
       if (!documentId || !chapterId || !chapterTitle || !chapterContent) {
         res.status(400).json({ 
@@ -345,16 +345,26 @@ export class BookController {
       const { AudioGenerator } = await import('../services/audioGenerator');
       const audioGenerator = new AudioGenerator(path.join('./audio', documentId));
 
+      // Prepare TTS options
+      const ttsOptions: any = {};
+      if (voice) {
+        ttsOptions.voice = voice;
+      }
+      if (audioConfig) {
+        ttsOptions.audioConfig = audioConfig;
+      }
+
       // Generate audio for this chapter
       const audioFile = await audioGenerator.generateChapterAudio(
         chapterTitle,
         chapterContent,
-        chapterId
+        chapterId,
+        ttsOptions
       );
 
       // Update metadata
       const { FileManager } = await import('../services/fileManager');
-      const fileManager = new FileManager(path.join('./audio', documentId));
+      const fileManager = new FileManager('./audio');
       const metadata = fileManager.loadMetadata(documentId);
 
       if (metadata) {
@@ -433,7 +443,7 @@ export class BookController {
       }
 
       const { FileManager } = await import('../services/fileManager');
-      const fileManager = new FileManager(path.join('./audio', documentId));
+      const fileManager = new FileManager('./audio');
       const metadata = fileManager.loadMetadata(documentId);
 
       if (!metadata) {

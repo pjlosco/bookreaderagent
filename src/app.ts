@@ -11,7 +11,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public')));
+// Try src/public first (development), then fall back to public (if populated)
+app.use(express.static(path.join(__dirname, '../src/public')));
 
 // Serve audio files from audio directory (including subdirectories)
 app.use('/audio', express.static(path.join(__dirname, '../audio')));

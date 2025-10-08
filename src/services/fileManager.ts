@@ -57,14 +57,17 @@ export class FileManager {
   }
 
   saveMetadata(documentId: string, metadata: AudioMetadata): void {
-    // Save directly in the base audio dir (which already contains the documentId)
-    const metadataPath = path.join(this.baseAudioDir, 'metadata.json');
+    // Save in the document-specific directory
+    const docDir = this.getDocumentAudioDir(documentId);
+    this.ensureDocumentDir(documentId);
+    const metadataPath = path.join(docDir, 'metadata.json');
     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
   }
 
   loadMetadata(documentId: string): AudioMetadata | null {
-    // Load directly from the base audio dir
-    const metadataPath = path.join(this.baseAudioDir, 'metadata.json');
+    // Load from the document-specific directory
+    const docDir = this.getDocumentAudioDir(documentId);
+    const metadataPath = path.join(docDir, 'metadata.json');
     
     if (!fs.existsSync(metadataPath)) {
       return null;

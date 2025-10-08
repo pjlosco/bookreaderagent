@@ -69,6 +69,8 @@ pids/
 audio/
 test-audio/
 voice-samples/
+voice-selection-test/
+voice-test*/
 *.mp3
 *.wav
 *.ogg
@@ -78,3 +80,4 @@ test-api.js
 debug-*.js
 list-*.js
 test-*.js
+test-*.sh

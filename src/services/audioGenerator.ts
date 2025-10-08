@@ -85,7 +85,8 @@ export class AudioGenerator {
   async generateChapterAudio(
     chapterTitle: string,
     chapterContent: string,
-    chapterId: string
+    chapterId: string,
+    options: TTSOptions = {}
   ): Promise<AudioFile> {
     // Create clean filename from chapter title
     const cleanFileName = this.createCleanFileName(chapterTitle);
@@ -93,7 +94,7 @@ export class AudioGenerator {
     // Clean the content to avoid title repetition
     const cleanedContent = this.cleanContentForTTS(chapterTitle, chapterContent);
     
-    return this.generateAudio(cleanedContent, cleanFileName);
+    return this.generateAudio(cleanedContent, cleanFileName, options);
   }
 
   private cleanContentForTTS(title: string, content: string): string {
@@ -161,7 +162,8 @@ export class AudioGenerator {
   }
 
   async generateMultipleChapterAudio(
-    chapters: Array<{ id: string; title: string; content: string }>
+    chapters: Array<{ id: string; title: string; content: string }>,
+    options: TTSOptions = {}
   ): Promise<AudioFile[]> {
     const audioFiles: AudioFile[] = [];
     
@@ -169,7 +171,8 @@ export class AudioGenerator {
       const audioFile = await this.generateChapterAudio(
         chapter.title,
         chapter.content,
-        chapter.id
+        chapter.id,
+        options
       );
       audioFiles.push(audioFile);
     }

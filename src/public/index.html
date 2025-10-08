@@ -439,6 +439,112 @@
             background-color: rgba(102, 126, 234, 0.3);
             font-weight: 600;
         }
+        
+        .progress-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: #28a745;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        
+        .document-progress {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .document-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .document-progress-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+        }
+        
+        .document-progress-stats {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .document-progress-percentage {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .chapter-progress-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #666;
+        }
+        
+        .resume-button {
+            background: #ffc107;
+            color: #333;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .resume-button:hover {
+            background: #ffb300;
+            transform: translateY(-1px);
+        }
+        
+        .clear-progress-button {
+            background: transparent;
+            color: #666;
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 10px;
+        }
+        
+        .clear-progress-button:hover {
+            background: #f8f9fa;
+            border-color: #999;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -489,6 +595,13 @@
             
             <!-- Tab 2: My Documents -->
             <div class="tab-content" id="my-documents">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; color: #333;">My Documents</h2>
+                    <button class="btn btn-sm btn-danger" id="clearAllDataBtn" style="margin-left: 20px;">
+                        🗑️ Clear All Data
+                    </button>
+                </div>
+                
                 <div class="loading hidden" id="documentsLoading">
                     <div class="spinner"></div>
                     <p>Loading documents...</p>
@@ -524,10 +637,109 @@
         
         // Enhanced read-along state
         const audioTimers = new Map(); // Track active timers per audio player
+        const progressIntervals = new Map(); // Track progress update intervals per audio player
         
         // Estimate speaking rate (words per minute for text-to-speech)
         const WORDS_PER_MINUTE = 150; // Average TTS speed
         const MS_PER_WORD = (60 / WORDS_PER_MINUTE) * 1000;
+        
+        // Progress tracking
+        const PROGRESS_STORAGE_KEY = 'bookReaderProgress';
+        
+        // Get progress data from localStorage
+        function getProgressData() {
+            const data = localStorage.getItem(PROGRESS_STORAGE_KEY);
+            return data ? JSON.parse(data) : {};
+        }
+        
+        // Save progress data to localStorage
+        function saveProgressData(data) {
+            localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(data));
+        }
+        
+        // Get progress for a specific chapter
+        function getChapterProgress(documentId, chapterId) {
+            const progress = getProgressData();
+            return progress[documentId]?.chapters?.[chapterId] || {
+                completed: false,
+                lastPosition: 0,
+                totalListeningTime: 0,
+                lastListened: null
+            };
+        }
+        
+        // Save chapter progress
+        function saveChapterProgress(documentId, chapterId, progressData) {
+            const allProgress = getProgressData();
+            
+            if (!allProgress[documentId]) {
+                allProgress[documentId] = { chapters: {} };
+            }
+            if (!allProgress[documentId].chapters) {
+                allProgress[documentId].chapters = {};
+            }
+            
+            allProgress[documentId].chapters[chapterId] = {
+                ...allProgress[documentId].chapters[chapterId],
+                ...progressData,
+                lastListened: new Date().toISOString()
+            };
+            
+            saveProgressData(allProgress);
+        }
+        
+        // Mark chapter as completed
+        function markChapterCompleted(documentId, chapterId) {
+            saveChapterProgress(documentId, chapterId, {
+                completed: true,
+                lastPosition: 0
+            });
+        }
+        
+        // Get document progress summary
+        function getDocumentProgress(documentId) {
+            const progress = getProgressData();
+            const docProgress = progress[documentId];
+            
+            if (!docProgress || !currentChapters.length) {
+                return { completed: 0, total: currentChapters.length, percentage: 0 };
+            }
+            
+            const completed = currentChapters.filter(chapter => 
+                docProgress.chapters?.[chapter.id]?.completed
+            ).length;
+            
+            return {
+                completed,
+                total: currentChapters.length,
+                percentage: Math.round((completed / currentChapters.length) * 100)
+            };
+        }
+        
+        // Clear progress for a chapter
+        function clearChapterProgress(documentId, chapterId) {
+            const allProgress = getProgressData();
+            if (allProgress[documentId]?.chapters?.[chapterId]) {
+                delete allProgress[documentId].chapters[chapterId];
+                saveProgressData(allProgress);
+            }
+        }
+        
+        // Clear all progress data
+        function clearAllProgressData() {
+            localStorage.removeItem(PROGRESS_STORAGE_KEY);
+            console.log('All progress data cleared from localStorage');
+        }
+        
+        // Clear progress for a specific document
+        function clearDocumentProgress(documentId) {
+            const allProgress = getProgressData();
+            if (allProgress[documentId]) {
+                delete allProgress[documentId];
+                saveProgressData(allProgress);
+                console.log(`Progress data cleared for document: ${documentId}`);
+            }
+        }
         
         // Helper function to split text into sentences
         function splitIntoSentences(text) {
@@ -571,10 +783,60 @@
             ).join('');
         }
         
-        // Helper function to scroll element into view smoothly
+        // Helper function to scroll element into view smoothly within its container
         function scrollToElement(element) {
             if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Find the read-along text container
+                const readAlongContainer = element.closest('.read-along-text');
+                if (readAlongContainer) {
+                    // Calculate the element's position relative to the container
+                    const containerRect = readAlongContainer.getBoundingClientRect();
+                    const elementRect = element.getBoundingClientRect();
+                    
+                    // Calculate the scroll position needed to center the element
+                    const elementTop = elementRect.top - containerRect.top + readAlongContainer.scrollTop;
+                    const elementHeight = elementRect.height;
+                    const containerHeight = readAlongContainer.clientHeight;
+                    
+                    // Center the element within the container
+                    const scrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
+                    
+                    // Smooth scroll within the container only
+                    readAlongContainer.scrollTo({
+                        top: scrollTop,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    // Fallback to page scroll if container not found
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+        
+        // Helper function to format time in seconds to readable format
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            if (mins > 60) {
+                const hours = Math.floor(mins / 60);
+                const remainingMins = mins % 60;
+                return `${hours}h ${remainingMins}m`;
+            }
+            return `${mins}m ${secs}s`;
+        }
+        
+        // Update document progress display
+        function updateDocumentProgress() {
+            const docProgress = getDocumentProgress(currentDocumentId);
+            const progressElement = document.querySelector('.document-progress');
+            
+            if (progressElement) {
+                progressElement.querySelector('.document-progress-percentage').textContent = 
+                    `${docProgress.percentage}%`;
+                progressElement.querySelector('.progress-bar').style.width = 
+                    `${docProgress.percentage}%`;
+                progressElement.querySelector('.document-progress-stats').textContent = 
+                    `${docProgress.completed} of ${docProgress.total} chapters completed`;
             }
         }
         
@@ -649,10 +911,36 @@
             const chapterList = document.getElementById('chapterList');
             document.getElementById('documentTitle').textContent = data.documentTitle;
             
-            chapterList.innerHTML = currentChapters.map((chapter, index) => `
-                <div class="chapter-card" data-chapter-index="${index}">
+            // Show document-level progress
+            const docProgress = getDocumentProgress(currentDocumentId);
+            const progressSection = `
+                <div class="document-progress">
+                    <div class="document-progress-header">
+                        <div class="document-progress-title">Overall Progress</div>
+                        <div class="document-progress-percentage">${docProgress.percentage}%</div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: ${docProgress.percentage}%"></div>
+                    </div>
+                    <div class="document-progress-stats">
+                        ${docProgress.completed} of ${docProgress.total} chapters completed
+                    </div>
+                </div>
+            `;
+            
+            chapterList.innerHTML = progressSection + currentChapters.map((chapter, index) => {
+                const chapterProgress = getChapterProgress(currentDocumentId, chapter.id);
+                const progressPercent = chapterProgress.lastPosition > 0 
+                    ? Math.round((chapterProgress.lastPosition / 100) * 100) 
+                    : 0;
+                
+                return `
+                <div class="chapter-card" data-chapter-index="${index}" data-chapter-id="${chapter.id}">
                     <div class="chapter-header">
-                        <div class="chapter-title">${chapter.title}</div>
+                        <div class="chapter-title">
+                            ${chapter.title}
+                            ${chapterProgress.completed ? '<span class="progress-badge">✓ Completed</span>' : ''}
+                        </div>
                         <label class="toggle-switch">
                             <input type="checkbox" 
                                    ${chapter.hasAudio ? 'checked' : ''} 
@@ -667,15 +955,38 @@
                     </div>
                     ${chapter.hasAudio ? `
                         <div class="audio-player">
-                            <audio controls data-chapter-index="${index}">
+                            <audio controls data-chapter-index="${index}" data-chapter-id="${chapter.id}">
                                 <source src="/audio/${currentDocumentId}/${chapter.audioFile}" type="audio/mpeg">
                             </audio>
-                            <a href="/audio/${currentDocumentId}/${chapter.audioFile}" 
-                               class="btn btn-sm btn-success" 
-                               download="${chapter.audioFile}"
-                               style="display: inline-block; text-decoration: none; margin-top: 10px;">
-                                ⬇️ Download Audio
-                            </a>
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; margin-top: 10px;">
+                                <a href="/audio/${currentDocumentId}/${chapter.audioFile}" 
+                                   class="btn btn-sm btn-success" 
+                                   download="${chapter.audioFile}"
+                                   style="display: inline-block; text-decoration: none;">
+                                    ⬇️ Download Audio
+                                </a>
+                                ${chapterProgress.lastPosition > 0 && !chapterProgress.completed ? `
+                                    <button class="resume-button" data-chapter-index="${index}" data-position="${chapterProgress.lastPosition}">
+                                        ▶️ Resume (${Math.round(chapterProgress.lastPosition)}%)
+                                    </button>
+                                ` : ''}
+                                ${chapterProgress.completed || chapterProgress.lastPosition > 0 ? `
+                                    <button class="clear-progress-button" data-chapter-id="${chapter.id}">
+                                        Clear Progress
+                                    </button>
+                                ` : ''}
+                            </div>
+                            ${chapterProgress.lastPosition > 0 && !chapterProgress.completed ? `
+                                <div class="chapter-progress-info">
+                                    <span>📊 Progress: ${Math.round(chapterProgress.lastPosition)}%</span>
+                                    ${chapterProgress.totalListeningTime > 0 ? `
+                                        <span>⏱️ Listened: ${formatTime(chapterProgress.totalListeningTime)}</span>
+                                    ` : ''}
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" style="width: ${chapterProgress.lastPosition}%"></div>
+                                </div>
+                            ` : ''}
                         </div>
                         <div class="read-along-text" data-chapter-index="${index}">
                             ${wrapSentencesInSpans(chapter.content)}
@@ -686,15 +997,47 @@
                         </div>
                     `}
                 </div>
-            `).join('');
+            `}).join('');
             
             // Add toggle event listeners
             chapterList.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                 checkbox.addEventListener('change', handleToggleChange);
             });
             
+            // Add resume button listeners
+            chapterList.querySelectorAll('.resume-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const chapterIndex = parseInt(button.dataset.chapterIndex);
+                    const position = parseFloat(button.dataset.position);
+                    const audio = document.querySelector(`audio[data-chapter-index="${chapterIndex}"]`);
+                    
+                    if (audio && audio.duration) {
+                        audio.currentTime = (position / 100) * audio.duration;
+                        audio.play();
+                    }
+                });
+            });
+            
+            // Add clear progress button listeners
+            chapterList.querySelectorAll('.clear-progress-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const chapterId = button.dataset.chapterId;
+                    
+                    if (confirm('Clear progress for this chapter?')) {
+                        clearChapterProgress(currentDocumentId, chapterId);
+                        
+                        // Refresh display
+                        fetchChapters();
+                    }
+                });
+            });
+            
             // Add audio player event listeners for read-along feature
             setupAudioReadAlong();
+            
+            // Setup progress tracking for all audio players
+            setupProgressTracking();
             
             showChapterSelection();
         }
@@ -738,13 +1081,8 @@
                     
                     // Show text when playing
                     audio.addEventListener('play', () => {
-                        // Pause all other audio players
+                        // Pause all other audio players and hide their text
                         pauseOtherAudioPlayers(audio);
-                        
-                        // Hide all other read-along texts
-                        document.querySelectorAll('.read-along-text').forEach(text => {
-                            text.classList.remove('playing');
-                        });
                         
                         // Show this chapter's text
                         readAlongText.classList.add('playing');
@@ -753,15 +1091,13 @@
                         startHighlighting(audio, readAlongText);
                     });
                     
-                    // Hide text when paused
+                    // Keep text visible when paused (just stop highlighting)
                     audio.addEventListener('pause', () => {
-                        readAlongText.classList.remove('playing');
                         stopHighlighting(audio);
                     });
                     
                     // Hide text when ended
                     audio.addEventListener('ended', () => {
-                        readAlongText.classList.remove('playing');
                         stopHighlighting(audio);
                         
                         // Clear all highlights
@@ -843,12 +1179,215 @@
             }
         }
         
-        // Pause all audio players except the current one
+        // Clear progress update interval for an audio element
+        function clearProgressInterval(audio) {
+            const intervalId = progressIntervals.get(audio);
+            if (intervalId) {
+                clearInterval(intervalId);
+                progressIntervals.delete(audio);
+            }
+        }
+        
+        // Setup progress tracking for audio players
+        function setupProgressTracking() {
+            const audioPlayers = document.querySelectorAll('audio');
+            
+            audioPlayers.forEach(audio => {
+                const chapterId = audio.dataset.chapterId;
+                if (!chapterId) return;
+                
+                let playStartTime = null;
+                let lastSavedPosition = 0;
+                
+                // Track when playback starts
+                audio.addEventListener('play', () => {
+                    playStartTime = Date.now();
+                    
+                    // Clear any existing interval for this audio
+                    clearProgressInterval(audio);
+                    
+                    // Start continuous UI updates
+                    const intervalId = setInterval(() => {
+                        if (!audio.paused && audio.duration) {
+                            const currentPosition = (audio.currentTime / audio.duration) * 100;
+                            updateChapterProgressUI(chapterId, currentPosition);
+                        }
+                    }, 500); // Update UI every 500ms for smooth progress
+                    
+                    progressIntervals.set(audio, intervalId);
+                });
+                
+                // Update progress periodically while playing
+                audio.addEventListener('timeupdate', () => {
+                    if (audio.paused || !audio.duration) return;
+                    
+                    const currentPosition = (audio.currentTime / audio.duration) * 100;
+                    
+                    // Save progress every 5% change
+                    if (Math.abs(currentPosition - lastSavedPosition) >= 5) {
+                        lastSavedPosition = currentPosition;
+                        
+                        const chapterProgress = getChapterProgress(currentDocumentId, chapterId);
+                        const listeningTime = playStartTime ? (Date.now() - playStartTime) / 1000 : 0;
+                        
+                        saveChapterProgress(currentDocumentId, chapterId, {
+                            lastPosition: currentPosition,
+                            totalListeningTime: (chapterProgress.totalListeningTime || 0) + listeningTime,
+                            completed: currentPosition >= 95 // Mark as completed if 95% or more
+                        });
+                        
+                        // Reset play start time
+                        playStartTime = Date.now();
+                    }
+                });
+                
+                // Save progress when paused
+                audio.addEventListener('pause', () => {
+                    // Clear the continuous update interval
+                    clearProgressInterval(audio);
+                    
+                    if (playStartTime && audio.duration) {
+                        const listeningTime = (Date.now() - playStartTime) / 1000;
+                        const currentPosition = (audio.currentTime / audio.duration) * 100;
+                        const chapterProgress = getChapterProgress(currentDocumentId, chapterId);
+                        
+                        saveChapterProgress(currentDocumentId, chapterId, {
+                            lastPosition: currentPosition,
+                            totalListeningTime: (chapterProgress.totalListeningTime || 0) + listeningTime
+                        });
+                        
+                        playStartTime = null;
+                        updateChapterProgressUI(chapterId, currentPosition);
+                    }
+                });
+                
+                // Mark as completed when audio ends
+                audio.addEventListener('ended', () => {
+                    // Clear the continuous update interval
+                    clearProgressInterval(audio);
+                    
+                    if (playStartTime) {
+                        const listeningTime = (Date.now() - playStartTime) / 1000;
+                        const chapterProgress = getChapterProgress(currentDocumentId, chapterId);
+                        
+                        saveChapterProgress(currentDocumentId, chapterId, {
+                            completed: true,
+                            lastPosition: 100,
+                            totalListeningTime: (chapterProgress.totalListeningTime || 0) + listeningTime
+                        });
+                        
+                        playStartTime = null;
+                        
+                        // Update UI to show completion
+                        updateChapterCompletionUI(chapterId);
+                        updateDocumentProgress();
+                    }
+                });
+                
+                // Handle seeking
+                audio.addEventListener('seeked', () => {
+                    if (audio.duration) {
+                        const currentPosition = (audio.currentTime / audio.duration) * 100;
+                        lastSavedPosition = currentPosition;
+                        
+                        // Update UI immediately after seeking
+                        updateChapterProgressUI(chapterId, currentPosition);
+                        
+                        if (!audio.paused) {
+                            playStartTime = Date.now();
+                        }
+                    }
+                });
+                
+                // Clean up interval when audio is removed
+                audio.addEventListener('loadstart', () => {
+                    clearProgressInterval(audio);
+                });
+            });
+        }
+        
+        // Update chapter progress UI (progress bar)
+        function updateChapterProgressUI(chapterId, progressPercent) {
+            const card = document.querySelector(`.chapter-card[data-chapter-id="${chapterId}"]`);
+            if (!card) return;
+            
+            // Update progress bar
+            const progressBar = card.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${progressPercent}%`;
+            }
+            
+            // Update progress info text
+            const progressInfo = card.querySelector('.chapter-progress-info span:first-child');
+            if (progressInfo) {
+                progressInfo.textContent = `📊 Progress: ${Math.round(progressPercent)}%`;
+            }
+            
+            // Update resume button if it exists
+            const resumeButton = card.querySelector('.resume-button');
+            if (resumeButton) {
+                resumeButton.textContent = `▶️ Resume (${Math.round(progressPercent)}%)`;
+                resumeButton.dataset.position = progressPercent;
+            }
+            
+            // Check if we should mark as completed
+            if (progressPercent >= 95) {
+                const chapterProgress = getChapterProgress(currentDocumentId, chapterId);
+                if (!chapterProgress.completed) {
+                    // Mark as completed
+                    saveChapterProgress(currentDocumentId, chapterId, {
+                        completed: true,
+                        lastPosition: 100
+                    });
+                    
+                    // Update UI to show completion
+                    updateChapterCompletionUI(chapterId);
+                    updateDocumentProgress();
+                }
+            }
+        }
+        
+        // Update chapter completion UI
+        function updateChapterCompletionUI(chapterId) {
+            const card = document.querySelector(`.chapter-card[data-chapter-id="${chapterId}"]`);
+            if (!card) return;
+            
+            const titleDiv = card.querySelector('.chapter-title');
+            if (titleDiv && !titleDiv.querySelector('.progress-badge')) {
+                const badge = document.createElement('span');
+                badge.className = 'progress-badge';
+                badge.innerHTML = '✓ Completed';
+                titleDiv.appendChild(badge);
+            }
+            
+            // Remove progress bar and resume button
+            const progressContainer = card.querySelector('.chapter-progress-info');
+            const progressBar = card.querySelector('.progress-bar-container');
+            const resumeButton = card.querySelector('.resume-button');
+            
+            if (progressContainer) progressContainer.remove();
+            if (progressBar) progressBar.remove();
+            if (resumeButton) resumeButton.remove();
+        }
+        
+        // Pause all audio players except the current one and hide their read-along text
         function pauseOtherAudioPlayers(currentAudio) {
             const audioPlayers = document.querySelectorAll('audio');
             audioPlayers.forEach(audio => {
                 if (audio !== currentAudio && !audio.paused) {
                     audio.pause();
+                    
+                    // Hide the read-along text for this audio
+                    const chapterIndex = audio.dataset.chapterIndex;
+                    const readAlongText = document.querySelector(`.read-along-text[data-chapter-index="${chapterIndex}"]`);
+                    if (readAlongText) {
+                        readAlongText.classList.remove('playing');
+                        
+                        // Clear highlights
+                        readAlongText.querySelectorAll('.sentence.active').forEach(el => {
+                            el.classList.remove('active');
+                        });
+                    }
                 }
             });
         }
@@ -930,8 +1469,9 @@
                 readAlongDiv.innerHTML = wrapSentencesInSpans(chapterContent);
                 card.appendChild(readAlongDiv);
                 
-                // Setup audio read-along for the new player
+                // Setup audio read-along and progress tracking for the new player
                 setupAudioReadAlong();
+                setupProgressTracking();
                 
                 // Update chapter data
                 currentChapters[chapterIndex].hasAudio = true;
@@ -982,11 +1522,14 @@
                 const statusDiv = card.querySelector('.chapter-status');
                 statusDiv.textContent = '⏳ Deleting audio...';
                 
+                console.log('Deleting audio for:', { currentDocumentId, chapterId });
+                
                 const response = await fetch(`/api/books/audio/${currentDocumentId}/${chapterId}`, {
                     method: 'DELETE'
                 });
                 
                 const data = await response.json();
+                console.log('Delete response:', { status: response.status, data });
                 
                 if (!response.ok) {
                     throw new Error(data.message || 'Failed to delete audio');
@@ -1011,18 +1554,25 @@
                 // Add back the text preview
                 const textPreview = document.createElement('div');
                 textPreview.className = 'text-preview';
+                const chapterIndex = parseInt(checkbox.dataset.chapterIndex);
                 const chapter = currentChapters[chapterIndex];
                 textPreview.innerHTML = `${escapeHtml(chapter.content.substring(0, 200))}...`;
                 card.appendChild(textPreview);
                 
                 // Update chapter data
-                const chapterIndex = parseInt(checkbox.dataset.chapterIndex);
                 currentChapters[chapterIndex].hasAudio = false;
                 currentChapters[chapterIndex].audioFile = null;
+                
+                // Clear progress for this chapter
+                clearChapterProgress(currentDocumentId, chapterId);
+                
+                // Update document progress
+                updateDocumentProgress();
                 
                 showSuccess(`Audio deleted for "${chapterTitle}"`);
                 
             } catch (err) {
+                console.error('Delete error:', err);
                 showError(err.message);
                 checkbox.checked = true; // Revert toggle
             } finally {
@@ -1053,14 +1603,41 @@
                                 <p>📊 ${doc.totalChapters} chapters | 🎵 ${doc.chaptersWithAudio} with audio</p>
                                 <p>📅 Generated: ${new Date(doc.generatedAt).toLocaleDateString()}</p>
                             </div>
+                            <div style="margin-top: 10px;">
+                                <button class="btn btn-sm" onclick="loadDocumentChapters('${doc.documentId}')" style="margin-right: 10px;">
+                                    📖 Open Document
+                                </button>
+                                <button class="btn btn-sm btn-danger clear-doc-progress-btn" data-document-id="${doc.documentId}">
+                                    🗑️ Clear Progress
+                                </button>
+                            </div>
                         </div>
                     `).join('');
                     
                     // Add click handlers
                     documentsList.querySelectorAll('.document-card').forEach(card => {
-                        card.addEventListener('click', () => {
+                        card.addEventListener('click', (e) => {
+                            // Don't trigger if clicking on buttons
+                            if (e.target.tagName === 'BUTTON') return;
+                            
                             const docId = card.dataset.documentId;
                             loadDocumentChapters(docId);
+                        });
+                    });
+                    
+                    // Add clear progress button handlers
+                    documentsList.querySelectorAll('.clear-doc-progress-btn').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            e.stopPropagation(); // Prevent card click
+                            const docId = button.dataset.documentId;
+                            
+                            if (confirm(`Clear progress data for this document? This will remove all completion status and progress tracking for "${data.documents.find(d => d.documentId === docId)?.documentTitle}".`)) {
+                                clearDocumentProgress(docId);
+                                showSuccess('Document progress cleared!');
+                                
+                                // Refresh the documents list
+                                loadDocuments();
+                            }
                         });
                     });
                 } else {
@@ -1129,6 +1706,17 @@
             div.textContent = text;
             return div.innerHTML;
         }
+        
+        // Clear All Data button
+        document.getElementById('clearAllDataBtn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear ALL progress data? This will remove all completion status, progress tracking, and listening history. This action cannot be undone.')) {
+                clearAllProgressData();
+                showSuccess('All progress data cleared! Refresh the page to see changes.');
+                
+                // Refresh the documents list
+                loadDocuments();
+            }
+        });
         
         // Close modal when clicking outside
         window.addEventListener('click', (e) => {
