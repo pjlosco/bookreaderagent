@@ -178,7 +178,7 @@ export class DocumentProcessor {
             ttsOptions.audioConfig = options.audioConfig;
           }
           
-          audioFile = await this.audioGenerator.generateChapterAudio(
+          audioFile = await this.audioGenerator.generateChapterAudioWithChunking(
             chapter.title,
             chapter.content,
             chapter.id,

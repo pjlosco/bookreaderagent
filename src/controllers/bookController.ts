@@ -354,8 +354,8 @@ export class BookController {
         ttsOptions.audioConfig = audioConfig;
       }
 
-      // Generate audio for this chapter
-      const audioFile = await audioGenerator.generateChapterAudio(
+      // Generate audio for this chapter (automatically handles chunking for large chapters)
+      const audioFile = await audioGenerator.generateChapterAudioWithChunking(
         chapterTitle,
         chapterContent,
         chapterId,

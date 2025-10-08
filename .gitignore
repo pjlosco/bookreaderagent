@@ -81,3 +81,7 @@ debug-*.js
 list-*.js
 test-*.js
 test-*.sh
+analyze-*.js
+
+# Test data cache
+test-data/

@@ -4,7 +4,15 @@ An intelligent AI agent that converts Google Docs into high-quality audio and pr
 
 ## ✨ Recent Accomplishments
 
-### Karaoke-Style Read-Along (Latest)
+### Large Chapter Support with Automatic Chunking (Latest)
+- **Handles any chapter size** — Automatically processes chapters exceeding 5,000 character API limit
+- **Smart paragraph splitting** — Maintains natural breaks at paragraph/sentence boundaries
+- **Seamless audio merging** — FFmpeg-based concatenation creates single file per chapter
+- **Tested with 18KB chapter** — Successfully generated 20-minute seamless audio file
+- **Transparent to user** — Works automatically, no configuration needed
+- **Cost efficient** — Only $0.29 for 18KB chapter using Neural2-A voice
+
+### Karaoke-Style Read-Along
 - **Synchronized text display** — Shows chapter text only while audio is playing
 - **Sentence highlighting** — Active sentence highlighted in purple as audio progresses
 - **Auto-scroll tracking** — Text scrolls within container to follow audio (no page lock)
@@ -266,7 +274,9 @@ The agent prioritizes audio quality by:
 - Optimizing text for better pronunciation
 - Supporting multiple voice options and languages
 - Generating high-bitrate MP3 output
-- Providing real-time streaming capabilities
+- **Automatic chunking for large chapters** (seamlessly handles 20+ minute audio)
+- Smart paragraph-aware text splitting
+- FFmpeg-based audio concatenation for single-file output
 
 ## 🤖 AI Agent Capabilities
 

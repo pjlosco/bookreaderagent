@@ -2,6 +2,7 @@ import { TextToSpeechClient } from '@google-cloud/text-to-speech';
 import { google } from '@google-cloud/text-to-speech/build/protos/protos';
 import fs from 'fs';
 import path from 'path';
+import ffmpeg from 'fluent-ffmpeg';
 
 export interface TTSOptions {
   voice?: {
@@ -27,6 +28,7 @@ export interface AudioFile {
 export class AudioGenerator {
   private client: TextToSpeechClient;
   private outputDir: string;
+  private readonly MAX_CHARS_PER_REQUEST = 4500; // Google TTS limit is 5000, leaving buffer
 
   constructor(outputDir: string = './audio') {
     this.client = new TextToSpeechClient();
@@ -178,6 +180,146 @@ export class AudioGenerator {
     }
     
     return audioFiles;
+  }
+
+  /**
+   * Split text into chunks at paragraph boundaries, respecting the max character limit
+   */
+  private splitTextIntoChunks(text: string): string[] {
+    if (text.length <= this.MAX_CHARS_PER_REQUEST) {
+      return [text];
+    }
+
+    const chunks: string[] = [];
+    const paragraphs = text.split(/\n\n+/); // Split at double newlines (paragraphs)
+    let currentChunk = '';
+
+    for (const paragraph of paragraphs) {
+      // If a single paragraph is too large, we need to split it further
+      if (paragraph.length > this.MAX_CHARS_PER_REQUEST) {
+        // Save current chunk if it has content
+        if (currentChunk) {
+          chunks.push(currentChunk.trim());
+          currentChunk = '';
+        }
+        
+        // Split large paragraph by sentences
+        const sentences = paragraph.split(/(?<=[.!?])\s+/);
+        for (const sentence of sentences) {
+          if (currentChunk.length + sentence.length + 1 > this.MAX_CHARS_PER_REQUEST) {
+            if (currentChunk) {
+              chunks.push(currentChunk.trim());
+            }
+            currentChunk = sentence;
+          } else {
+            currentChunk += (currentChunk ? ' ' : '') + sentence;
+          }
+        }
+        continue;
+      }
+
+      // Check if adding this paragraph would exceed the limit
+      const potentialChunk = currentChunk + (currentChunk ? '\n\n' : '') + paragraph;
+      if (potentialChunk.length > this.MAX_CHARS_PER_REQUEST) {
+        // Save current chunk and start a new one
+        chunks.push(currentChunk.trim());
+        currentChunk = paragraph;
+      } else {
+        currentChunk = potentialChunk;
+      }
+    }
+
+    // Add the last chunk
+    if (currentChunk) {
+      chunks.push(currentChunk.trim());
+    }
+
+    return chunks;
+  }
+
+  /**
+   * Concatenate multiple audio files into one using ffmpeg
+   */
+  private async concatenateAudioFiles(partFiles: string[], outputFile: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // Create a temporary concat list file
+      const concatListPath = path.join(this.outputDir, '.concat-list.txt');
+      const concatList = partFiles.map(f => `file '${path.basename(f)}'`).join('\n');
+      fs.writeFileSync(concatListPath, concatList);
+
+      ffmpeg()
+        .input(concatListPath)
+        .inputOptions(['-f', 'concat', '-safe', '0'])
+        .audioCodec('copy')
+        .on('end', () => {
+          // Clean up temporary files
+          fs.unlinkSync(concatListPath);
+          partFiles.forEach(f => {
+            if (fs.existsSync(f)) {
+              fs.unlinkSync(f);
+            }
+          });
+          resolve();
+        })
+        .on('error', (err) => {
+          // Clean up on error
+          if (fs.existsSync(concatListPath)) {
+            fs.unlinkSync(concatListPath);
+          }
+          reject(new Error(`FFmpeg concatenation failed: ${err.message}`));
+        })
+        .save(outputFile);
+    });
+  }
+
+  /**
+   * Generate audio for a chapter, automatically handling large content by chunking
+   */
+  async generateChapterAudioWithChunking(
+    chapterTitle: string,
+    chapterContent: string,
+    chapterId: string,
+    options: TTSOptions = {}
+  ): Promise<AudioFile> {
+    const cleanFileName = this.createCleanFileName(chapterTitle);
+    const cleanedContent = this.cleanContentForTTS(chapterTitle, chapterContent);
+    
+    // Check if content needs to be chunked
+    if (cleanedContent.length <= this.MAX_CHARS_PER_REQUEST) {
+      // Small enough for single request
+      return this.generateAudio(cleanedContent, cleanFileName, options);
+    }
+
+    console.log(`Chapter "${chapterTitle}" is ${cleanedContent.length} chars, splitting into chunks...`);
+    
+    // Split into chunks
+    const chunks = this.splitTextIntoChunks(cleanedContent);
+    console.log(`Split into ${chunks.length} chunks`);
+
+    // Generate audio for each chunk
+    const partFiles: string[] = [];
+    for (let i = 0; i < chunks.length; i++) {
+      const partFileName = `${cleanFileName}-part${i + 1}`;
+      console.log(`Generating part ${i + 1}/${chunks.length} (${chunks[i].length} chars)...`);
+      
+      const partFile = await this.generateAudio(chunks[i], partFileName, options);
+      partFiles.push(partFile.filePath);
+    }
+
+    // Concatenate all parts into a single file
+    const finalFilePath = path.join(this.outputDir, `${cleanFileName}.mp3`);
+    console.log(`Concatenating ${partFiles.length} audio parts into single file...`);
+    
+    await this.concatenateAudioFiles(partFiles, finalFilePath);
+    
+    const stats = fs.statSync(finalFilePath);
+    console.log(`✓ Created merged audio file: ${finalFilePath} (${stats.size} bytes)`);
+    
+    return {
+      filePath: finalFilePath,
+      fileName: `${cleanFileName}.mp3`,
+      size: stats.size,
+    };
   }
 
   getAvailableVoices(languageCode: string = 'en-US'): Promise<google.cloud.texttospeech.v1.IVoice[]> {
