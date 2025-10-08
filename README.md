@@ -166,40 +166,137 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [x] **Progress management** - Clear data for chapters, documents, or everything
 - [x] **Resume buttons** - Quick resume with saved position percentage
 
-### Phase 3: AI Agent Features (Planned)
+### Phase 3: Voice & Performance ✅ (Completed)
+- [x] **Voice selection via API** - Custom voices (Neural2, Wavenet, Standard)
+- [x] **Voice options fully configurable** - Pass voice parameters in API requests
+- [x] **Large chapter support** - Automatic chunking for chapters >5,000 characters
+- [x] **Smart paragraph splitting** - Maintains natural breaks in long chapters
+- [x] **FFmpeg audio concatenation** - Seamless merging of chunked audio
+- [x] **Tested with 18KB chapter** - Successfully generated 20-minute audio file
+- [x] **Playback speed control** - 0.75x to 2.0x range with fine adjustments
+- [x] **Persistent speed preferences** - LocalStorage saves user's preferred speed
+- [x] **Real-time speed adjustment** - Instant feedback with smooth slider
+
+### Phase 4: AI Agent Features (Next Priority)
 - [ ] **Interactive Q&A during playback** - Pause to ask questions about content
 - [ ] **Cross-chapter context** - AI can reference content from other chapters
 - [ ] Document chunking with timestamps per chapter
 - [ ] Vector embeddings for semantic search across all chapters
-- [ ] LLM integration for Q&A (OpenAI/Claude)
+- [ ] LLM integration for Q&A (OpenAI/Claude/Gemini)
 - [ ] Chat interface for user questions
 - [ ] **Chapter-aware responses** - AI knows which chapter user is listening to
 - [ ] Conversation history management
 - [ ] Real-time WebSocket communication
 
-### Phase 4: Enhanced Features (Future)
-- [ ] Multiple voice selection UI
-- [ ] Audio speed control (0.5x - 2.0x)
-- [ ] Advanced chapter navigation
+### Phase 5: Advanced Features (Future)
+- [ ] Multiple voice selection UI (dropdown in web interface)
+- [ ] Advanced chapter navigation (table of contents, jump to section)
 - [ ] Batch processing for multiple documents
-- [ ] Mobile app interface
+- [ ] Voice cloning for consistent narrator
+- [ ] Mobile-optimized responsive interface
 - [ ] Offline mode with cached content
 - [ ] Bookmarking and annotations
 - [ ] Export progress reports
+- [ ] Playlist creation (custom chapter orders)
+- [ ] Share and collaborate features
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap & Next Steps
 
-### Authentication Evolution
-- **Phase 1**: Service Account (Current) - Development and backend services
+### 🎯 Immediate Priorities (Next 2-4 Weeks)
+
+#### 1. AI Question & Answer System (High Priority)
+**Goal:** Enable users to ask questions about content while listening
+
+**Tasks:**
+- [ ] Integrate LLM API (OpenAI GPT-4 or Google Gemini)
+- [ ] Implement chapter text embedding and vector storage
+- [ ] Create chat interface in web UI
+- [ ] Add "Ask a Question" button that pauses audio
+- [ ] Context-aware prompting (knows current chapter/position)
+- [ ] Conversation history within session
+- [ ] Response streaming for better UX
+
+**Why Now:** This is the core differentiator - interactive audiobook with AI tutor
+
+#### 2. Voice Selection UI (Medium Priority)
+**Goal:** Let users choose voices from the web interface
+
+**Tasks:**
+- [ ] Create voice preview samples for each option
+- [ ] Add dropdown/card selector to UI
+- [ ] Allow voice selection before generation
+- [ ] Save voice preference per document
+- [ ] Add voice comparison feature
+- [ ] Update metadata to track voice used
+
+**Why Now:** Foundation exists (API works), just need UI layer
+
+#### 3. Enhanced Chapter Navigation (Medium Priority)
+**Goal:** Improve navigation for long documents
+
+**Tasks:**
+- [ ] Collapsible chapter list for long books
+- [ ] Search/filter chapters by title
+- [ ] Chapter preview on hover
+- [ ] Keyboard shortcuts (next/prev chapter)
+- [ ] Table of contents view
+- [ ] Mini-map of document progress
+
+**Why Now:** 30-chapter documents are hard to navigate
+
+#### 4. Performance Optimization (Low Priority)
+**Goal:** Make the system faster and more efficient
+
+**Tasks:**
+- [ ] Parallel chunk generation (generate multiple at once)
+- [ ] Streaming audio delivery (play while generating)
+- [ ] Caching improvements
+- [ ] Database instead of JSON files
+- [ ] CDN integration for audio files
+
+**Why Now:** Current system works but could be faster
+
+### 📅 Mid-Term Goals (2-3 Months)
+
+#### Multi-Document Features
+- Batch processing queue
+- Document comparison/diff
+- Cross-document search
+- Playlist creation
+
+#### Mobile Experience
+- Responsive design optimization
+- Touch-friendly controls
+- Mobile-first audio player
+- Offline support with service workers
+
+#### Collaboration & Sharing
+- Share progress with others
+- Public/private document links
+- Collaborative annotations
+- Team/classroom features
+
+### 🚀 Long-Term Vision (6-12 Months)
+
+#### Authentication Evolution
+- **Phase 1**: Service Account (Current) ✅
 - **Phase 2**: OAuth2 Web Auth - User login through web interface
-- **Phase 3**: Mobile OAuth - Platform-specific authentication for iOS/Android
-- **Phase 4**: Hybrid Auth - Service account + user authentication
+- **Phase 3**: User Accounts - Personal libraries and progress
+- **Phase 4**: Team Features - Shared documents and collaboration
 
-### Future Integrations
+#### Platform Expansion
 - **Mobile Apps**: Native iOS and Android applications
+- **Browser Extensions**: Chrome/Firefox extensions for any webpage
 - **Voice Assistants**: Integration with Alexa, Google Assistant
 - **Learning Platforms**: Canvas, Blackboard, Moodle integration
-- **Enterprise**: SSO, team collaboration features
+- **Enterprise**: SSO, analytics, team management
+
+#### Advanced AI Features
+- Custom voice training/cloning
+- Multi-language support with translation
+- Concept extraction and quizzing
+- Study guide generation
+- Adaptive narration (emphasizes key concepts)
 
 ## 🎙️ Voice Selection
 

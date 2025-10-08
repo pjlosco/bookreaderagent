@@ -253,6 +253,79 @@
             margin-bottom: 10px;
         }
         
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .speed-control label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin: 0;
+            white-space: nowrap;
+        }
+        
+        .speed-slider {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            background: linear-gradient(to right, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+        }
+        
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        
+        .speed-slider::-webkit-slider-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+        
+        .speed-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        
+        .speed-slider::-moz-range-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+        
+        .speed-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #667eea;
+            min-width: 45px;
+            text-align: center;
+            background: #f0f0ff;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
         .document-list {
             display: grid;
             gap: 15px;
@@ -958,6 +1031,17 @@
                             <audio controls data-chapter-index="${index}" data-chapter-id="${chapter.id}">
                                 <source src="/audio/${currentDocumentId}/${chapter.audioFile}" type="audio/mpeg">
                             </audio>
+                            <div class="speed-control">
+                                <label>Speed:</label>
+                                <input type="range" 
+                                       class="speed-slider" 
+                                       min="0.75" 
+                                       max="2.0" 
+                                       step="0.05" 
+                                       value="1.0"
+                                       data-chapter-id="${chapter.id}">
+                                <span class="speed-value">1.0x</span>
+                            </div>
                             <div style="display: flex; align-items: center; flex-wrap: wrap; margin-top: 10px;">
                                 <a href="/audio/${currentDocumentId}/${chapter.audioFile}" 
                                    class="btn btn-sm btn-success" 
@@ -1044,6 +1128,11 @@
         
         // Setup audio read-along functionality with enhanced features
         function setupAudioReadAlong() {
+            // Initialize speed controls first
+            document.querySelectorAll('.audio-player').forEach(audioPlayer => {
+                initializeSpeedControl(audioPlayer);
+            });
+            
             const audioPlayers = document.querySelectorAll('audio');
             
             audioPlayers.forEach(audio => {
@@ -1443,9 +1532,20 @@
                 const audioPlayer = document.createElement('div');
                 audioPlayer.className = 'audio-player';
                 audioPlayer.innerHTML = `
-                    <audio controls data-chapter-index="${chapterIndex}">
+                    <audio controls data-chapter-index="${chapterIndex}" data-chapter-id="${chapterId}">
                         <source src="${data.audioFile.url}" type="audio/mpeg">
                     </audio>
+                    <div class="speed-control">
+                        <label>Speed:</label>
+                        <input type="range" 
+                               class="speed-slider" 
+                               min="0.75" 
+                               max="2.0" 
+                               step="0.05" 
+                               value="1.0"
+                               data-chapter-id="${chapterId}">
+                        <span class="speed-value">1.0x</span>
+                    </div>
                     <a href="${data.audioFile.url}" 
                        class="btn btn-sm btn-success" 
                        download="${data.audioFile.fileName}"
@@ -1453,6 +1553,9 @@
                         ⬇️ Download Audio
                     </a>
                 `;
+                
+                // Initialize speed control for this new audio player
+                setTimeout(() => initializeSpeedControl(audioPlayer), 100);
                 
                 // Remove text preview since we're showing read-along text instead
                 const textPreview = card.querySelector('.text-preview');
@@ -1677,6 +1780,43 @@
         
         function hideChapterSelection() {
             document.getElementById('chapterSelection').classList.add('hidden');
+        }
+        
+        // Initialize playback speed control for audio players
+        function initializeSpeedControl(audioPlayerElement) {
+            const audio = audioPlayerElement.querySelector('audio');
+            const slider = audioPlayerElement.querySelector('.speed-slider');
+            const speedValue = audioPlayerElement.querySelector('.speed-value');
+            
+            if (!audio || !slider || !speedValue) return;
+            
+            const chapterId = audio.dataset.chapterId || 'default';
+            const storageKey = `audioSpeed_${chapterId}`;
+            
+            // Load saved speed from localStorage
+            const savedSpeed = localStorage.getItem(storageKey) || localStorage.getItem('audioSpeed_global') || '1.0';
+            const speed = parseFloat(savedSpeed);
+            
+            // Set initial values
+            slider.value = speed;
+            speedValue.textContent = `${speed.toFixed(2)}x`;
+            audio.playbackRate = speed;
+            
+            // Update speed when slider changes
+            slider.addEventListener('input', (e) => {
+                const newSpeed = parseFloat(e.target.value);
+                speedValue.textContent = `${newSpeed.toFixed(2)}x`;
+                audio.playbackRate = newSpeed;
+                
+                // Save to localStorage (both chapter-specific and global)
+                localStorage.setItem(storageKey, newSpeed.toString());
+                localStorage.setItem('audioSpeed_global', newSpeed.toString());
+            });
+            
+            // Also restore speed when audio loads (in case it was reset)
+            audio.addEventListener('loadedmetadata', () => {
+                audio.playbackRate = parseFloat(slider.value);
+            });
         }
         
         function showError(message) {
