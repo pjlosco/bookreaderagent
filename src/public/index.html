@@ -1782,7 +1782,21 @@
             document.getElementById('chapterSelection').classList.add('hidden');
         }
         
-        // Initialize playback speed control for audio players
+        /**
+         * Initialize playback speed control for audio players.
+         * 
+         * Creates a speed slider (0.75x - 2.0x) that:
+         * - Adjusts audio.playbackRate in real-time
+         * - Saves preference to localStorage (per-chapter + global)
+         * - Restores saved speed on page load
+         * - Updates display value (e.g., "1.25x")
+         * 
+         * Storage strategy:
+         * - Per-chapter: audioSpeed_{chapterId} (remembers speed for each chapter)
+         * - Global: audioSpeed_global (default for new chapters)
+         * 
+         * @param audioPlayerElement - The .audio-player div containing audio and slider
+         */
         function initializeSpeedControl(audioPlayerElement) {
             const audio = audioPlayerElement.querySelector('audio');
             const slider = audioPlayerElement.querySelector('.speed-slider');
