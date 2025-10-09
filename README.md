@@ -506,9 +506,20 @@ npm run test:coverage
 
 ---
 
+## 🤖 AI Q&A Setup
+
+To enable the AI Q&A feature:
+
+1. **Get Gemini API Key:** Visit https://makersuite.google.com/app/apikey
+2. **Add to `.env`:** `GEMINI_API_KEY=your-api-key-here`
+3. **Restart server:** `npm start`
+4. **Test:** `node test-ai-qa.js`
+
+**Pricing:** $0.002 per question (100 questions = $0.20)
+
 ## 📝 Suggested Next Steps
 
-Based on current completion (68% - Phases 1-3 done), here are the recommended priorities:
+Based on current completion (68% - Phases 1-3 done, Phase 4 in progress):
 
 ### 🥇 Priority 1: AI Question & Answer System
 **Why:** Unique market differentiator - "interactive audiobook with AI tutor"

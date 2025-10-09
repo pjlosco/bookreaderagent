@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { bookRoutes } from './routes/bookRoutes';
+import { aiRoutes } from './routes/aiRoutes';
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use('/audio', express.static(path.join(__dirname, '../audio')));
 
 // API routes
 app.use('/api/books', bookRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
