@@ -49,7 +49,7 @@ export class AIService {
     const key = apiKey || process.env.GEMINI_API_KEY;
     
     if (!key) {
-      throw new Error('GEMINI_API_KEY environment variable is required');
+      throw new Error('GEMINI_API_KEY environment variable is required for AI features');
     }
 
     this.genAI = new GoogleGenerativeAI(key);

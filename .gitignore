@@ -83,5 +83,8 @@ test-*.js
 test-*.sh
 analyze-*.js
 
+# Utility scripts (keep these)
+# verify-setup.js - setup verification tool
+
 # Test data cache
 test-data/

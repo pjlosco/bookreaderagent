@@ -15,12 +15,42 @@ import path from 'path';
  * accurate, context-aware responses.
  */
 export class AIController {
-  private aiService: AIService;
+  private aiService: AIService | null = null;
   private fileManager: FileManager;
+  private aiEnabled: boolean;
 
   constructor() {
-    this.aiService = new AIService();
     this.fileManager = new FileManager('./audio');
+    
+    // Check if AI features are enabled
+    this.aiEnabled = !!process.env.GEMINI_API_KEY;
+    
+    // Only initialize AI service if API key is available
+    if (this.aiEnabled) {
+      try {
+        this.aiService = new AIService();
+      } catch (error) {
+        console.warn('AI features disabled: GEMINI_API_KEY not configured');
+        this.aiEnabled = false;
+      }
+    } else {
+      console.log('AI features disabled: GEMINI_API_KEY not set in environment');
+    }
+  }
+
+  /**
+   * Check if AI service is available and return appropriate error if not
+   */
+  private checkAIAvailable(res: Response): boolean {
+    if (!this.aiEnabled || !this.aiService) {
+      res.status(503).json({
+        error: 'Service Unavailable',
+        message: 'AI features are not enabled. Please set GEMINI_API_KEY in your environment to use Q&A functionality.',
+        hint: 'Visit https://makersuite.google.com/app/apikey to get your API key'
+      });
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -47,6 +77,11 @@ export class AIController {
    */
   async askQuestion(req: Request, res: Response): Promise<void> {
     try {
+      // Check if AI features are available
+      if (!this.checkAIAvailable(res)) {
+        return;
+      }
+
       const { question, documentId, chapterId, conversationHistory } = req.body;
 
       // Validate required fields
@@ -88,8 +123,8 @@ export class AIController {
         return;
       }
 
-      // Ask the AI
-      const response = await this.aiService.askQuestion({
+      // Ask the AI (we know aiService is not null due to checkAIAvailable)
+      const response = await this.aiService!.askQuestion({
         question,
         chapterTitle: chapter.title,
         chapterContent: chapter.content,
@@ -126,6 +161,11 @@ export class AIController {
    */
   async summarizeChapter(req: Request, res: Response): Promise<void> {
     try {
+      // Check if AI features are available
+      if (!this.checkAIAvailable(res)) {
+        return;
+      }
+
       const { documentId, chapterId } = req.body;
 
       if (!documentId || !chapterId) {
@@ -157,8 +197,8 @@ export class AIController {
         return;
       }
 
-      // Generate summary
-      const summary = await this.aiService.summarizeChapter(
+      // Generate summary (we know aiService is not null due to checkAIAvailable)
+      const summary = await this.aiService!.summarizeChapter(
         chapter.title,
         chapter.content
       );
@@ -189,6 +229,11 @@ export class AIController {
    */
   async extractConcepts(req: Request, res: Response): Promise<void> {
     try {
+      // Check if AI features are available
+      if (!this.checkAIAvailable(res)) {
+        return;
+      }
+
       const { documentId, chapterId } = req.body;
 
       if (!documentId || !chapterId) {
@@ -219,7 +264,7 @@ export class AIController {
         return;
       }
 
-      const concepts = await this.aiService.extractKeyConcepts(chapter.content);
+      const concepts = await this.aiService!.extractKeyConcepts(chapter.content);
 
       res.json({
         success: true,

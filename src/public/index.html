@@ -1170,7 +1170,14 @@
                                        data-chapter-id="${chapter.id}">
                                 <span class="speed-value">1.0x</span>
                             </div>
-                            <div style="display: flex; align-items: center; flex-wrap: wrap; margin-top: 10px;">
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+                                <button class="ask-ai-button" 
+                                        data-chapter-index="${index}" 
+                                        data-chapter-id="${chapter.id}"
+                                        data-chapter-title="${escapeHtml(chapter.title)}"
+                                        style="padding: 8px 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+                                    🤖 Ask AI
+                                </button>
                                 <a href="/audio/${currentDocumentId}/${chapter.audioFile}" 
                                    class="btn btn-sm btn-success" 
                                    download="${chapter.audioFile}"
@@ -1250,6 +1257,9 @@
             
             // Setup progress tracking for all audio players
             setupProgressTracking();
+            
+            // Setup Ask AI buttons
+            setupAskAIButtons();
             
             showChapterSelection();
         }
@@ -1710,6 +1720,7 @@
                 // Setup audio read-along and progress tracking for the new player
                 setupAudioReadAlong();
                 setupProgressTracking();
+                setupAskAIButtons();
                 
                 // Update chapter data
                 currentChapters[chapterIndex].hasAudio = true;
@@ -2124,6 +2135,269 @@
                 chatNeedsDocument.classList.remove('hidden');
             }
         }
+        
+        // ============================================
+        // AI Q&A Feature with Built-in Text-to-Speech
+        // ============================================
+        
+        let currentAskingChapter = null;
+        let currentAskingAudio = null;
+        let aiSpeechSynthesis = window.speechSynthesis;
+        let aiUtterance = null;
+        
+        // Setup Ask AI buttons after chapters are displayed
+        function setupAskAIButtons() {
+            document.querySelectorAll('.ask-ai-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const chapterIndex = button.dataset.chapterIndex;
+                    const chapterId = button.dataset.chapterId;
+                    const chapterTitle = button.dataset.chapterTitle;
+                    const audio = document.querySelector(`audio[data-chapter-index="${chapterIndex}"]`);
+                    
+                    openAIDialog(chapterIndex, chapterId, chapterTitle, audio);
+                });
+            });
+        }
+        
+        // Open AI dialog (pause audio)
+        function openAIDialog(chapterIndex, chapterId, chapterTitle, audio) {
+            currentAskingChapter = { index: chapterIndex, id: chapterId, title: chapterTitle };
+            currentAskingAudio = audio;
+            
+            // Pause audio if playing
+            if (audio && !audio.paused) {
+                audio.pause();
+            }
+            
+            // Stop any ongoing speech
+            if (aiSpeechSynthesis.speaking) {
+                aiSpeechSynthesis.cancel();
+            }
+            
+            // Get current position for context
+            const currentPosition = audio ? (audio.currentTime / audio.duration) * 100 : 0;
+            const currentSentence = getCurrentSentence(chapterIndex);
+            
+            // Update dialog title
+            document.getElementById('ai-dialog-title').textContent = `Ask about: ${chapterTitle}`;
+            document.getElementById('ai-context-info').textContent = 
+                `Position: ${Math.round(currentPosition)}%${currentSentence ? ' | ' + currentSentence.substring(0, 60) + '...' : ''}`;
+            
+            // Clear previous question
+            document.getElementById('ai-question-input').value = '';
+            document.getElementById('ai-response-area').style.display = 'none';
+            document.getElementById('ai-response-text').textContent = '';
+            
+            // Show dialog
+            document.getElementById('ai-dialog-overlay').style.display = 'flex';
+            document.getElementById('ai-question-input').focus();
+        }
+        
+        // Close AI dialog
+        function closeAIDialog() {
+            document.getElementById('ai-dialog-overlay').style.display = 'none';
+            
+            // Stop any ongoing speech
+            if (aiSpeechSynthesis.speaking) {
+                aiSpeechSynthesis.cancel();
+            }
+            
+            currentAskingChapter = null;
+            currentAskingAudio = null;
+        }
+        
+        // Get current sentence being read
+        function getCurrentSentence(chapterIndex) {
+            const activeSpan = document.querySelector(`.read-along-text[data-chapter-index="${chapterIndex}"] .sentence.active-sentence`);
+            return activeSpan ? activeSpan.textContent.trim() : null;
+        }
+        
+        // Submit AI question
+        async function submitAIQuestion() {
+            const question = document.getElementById('ai-question-input').value.trim();
+            if (!question || !currentAskingChapter) return;
+            
+            const submitButton = document.querySelector('#ai-dialog-overlay button[onclick="submitAIQuestion()"]');
+            submitButton.disabled = true;
+            submitButton.textContent = '🤔 Thinking...';
+            
+            try {
+                // Get chapter content for context
+                const chapter = currentChapters[currentAskingChapter.index];
+                
+                // Get current position context
+                const audio = currentAskingAudio;
+                const currentPosition = audio ? (audio.currentTime / audio.duration) * 100 : 0;
+                const currentSentence = getCurrentSentence(currentAskingChapter.index);
+                
+                // Build context-aware prompt
+                let contextNote = '';
+                if (currentPosition > 0) {
+                    contextNote = `\\n\\nNote: The user is currently at ${Math.round(currentPosition)}% through the chapter`;
+                    if (currentSentence) {
+                        contextNote += ` and just heard: "${currentSentence.substring(0, 100)}..."`;
+                    }
+                }
+                
+                // Call AI API
+                const response = await fetch('/api/ai/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        question: question + contextNote,
+                        documentId: currentDocumentId,
+                        chapterId: currentAskingChapter.id
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Display response
+                    document.getElementById('ai-response-area').style.display = 'block';
+                    document.getElementById('ai-response-text').textContent = data.answer;
+                    
+                    // Speak response using device TTS
+                    speakResponse(data.answer);
+                } else {
+                    alert('AI Error: ' + (data.message || 'Failed to get response'));
+                }
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = '🚀 Ask AI';
+            }
+        }
+        
+        // Speak AI response using device's text-to-speech
+        function speakResponse(text) {
+            // Cancel any ongoing speech
+            if (aiSpeechSynthesis.speaking) {
+                aiSpeechSynthesis.cancel();
+            }
+            
+            // Create utterance
+            aiUtterance = new SpeechSynthesisUtterance(text);
+            
+            // Configure voice (use first available English voice)
+            const voices = aiSpeechSynthesis.getVoices();
+            const englishVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+            if (englishVoice) {
+                aiUtterance.voice = englishVoice;
+            }
+            
+            // Configure speech parameters
+            aiUtterance.rate = 0.95;  // Slightly slower for clarity
+            aiUtterance.pitch = 1.0;
+            aiUtterance.volume = 1.0;
+            
+            // Update UI during speech
+            aiUtterance.onstart = () => {
+                document.getElementById('stop-speech-button').style.display = 'inline-block';
+            };
+            
+            aiUtterance.onend = () => {
+                document.getElementById('stop-speech-button').style.display = 'none';
+            };
+            
+            aiUtterance.onerror = (event) => {
+                console.error('Speech synthesis error:', event);
+                document.getElementById('stop-speech-button').style.display = 'none';
+            };
+            
+            // Speak!
+            aiSpeechSynthesis.speak(aiUtterance);
+        }
+        
+        // Stop speech
+        function stopSpeech() {
+            if (aiSpeechSynthesis.speaking) {
+                aiSpeechSynthesis.cancel();
+            }
+            document.getElementById('stop-speech-button').style.display = 'none';
+        }
+        
+        // Resume audio playback
+        function resumeAudio() {
+            if (currentAskingAudio && currentAskingAudio.paused) {
+                currentAskingAudio.play();
+            }
+            closeAIDialog();
+        }
+        
+        // Enter key to submit
+        document.addEventListener('DOMContentLoaded', () => {
+            const questionInput = document.getElementById('ai-question-input');
+            if (questionInput) {
+                questionInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        submitAIQuestion();
+                    }
+                });
+            }
+            
+            // Load voices (needed for some browsers)
+            if (aiSpeechSynthesis.onvoiceschanged !== undefined) {
+                aiSpeechSynthesis.onvoiceschanged = () => {
+                    aiSpeechSynthesis.getVoices();
+                };
+            }
+        });
+        
     </script>
+    
+    <!-- AI Question Dialog Modal -->
+    <div id="ai-dialog-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center; backdrop-filter: blur(4px);">
+        <div style="background: white; border-radius: 15px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 id="ai-dialog-title" style="margin: 0; color: #667eea;">Ask AI a Question</h2>
+                <button onclick="closeAIDialog()" style="background: none; border: none; font-size: 28px; cursor: pointer; color: #666; line-height: 1;">×</button>
+            </div>
+            
+            <div id="ai-context-info" style="background: #f0f0f0; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 0.9em; color: #666;">
+                Loading context...
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Your Question:</label>
+                <textarea 
+                    id="ai-question-input" 
+                    placeholder="What would you like to know about this chapter?&#10;&#10;Example: What is the main concept explained here?"
+                    style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 15px; min-height: 100px; font-family: inherit; resize: vertical;"
+                ></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button onclick="submitAIQuestion()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 15px;">
+                    🚀 Ask AI
+                </button>
+                <button onclick="closeAIDialog()" style="padding: 12px 20px; background: #e0e0e0; color: #333; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                    Cancel
+                </button>
+            </div>
+            
+            <div id="ai-response-area" style="display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 4px solid #667eea;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="color: #667eea; font-size: 16px;">🤖 AI Response:</strong>
+                    <div>
+                        <button id="stop-speech-button" onclick="stopSpeech()" style="display: none; padding: 6px 12px; background: #dc3545; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; margin-right: 8px;">
+                            ⏹️ Stop Speech
+                        </button>
+                        <button onclick="resumeAudio(); closeAIDialog();" style="padding: 6px 12px; background: #48bb78; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+                            ▶️ Resume Audio
+                        </button>
+                    </div>
+                </div>
+                <p id="ai-response-text" style="margin: 0; line-height: 1.6; color: #333; white-space: pre-wrap;"></p>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 12px; background: #e8f4fd; border-radius: 6px; font-size: 0.85em; color: #0066cc;">
+                💡 <strong>Tip:</strong> The AI knows where you are in the chapter and can give context-specific answers!
+            </div>
+        </div>
+    </div>
 </body>
 </html>
