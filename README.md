@@ -4,7 +4,24 @@ An intelligent AI agent that converts Google Docs into high-quality audio and pr
 
 ## ✨ Recent Accomplishments
 
-### Large Chapter Support with Automatic Chunking (Latest)
+### AI-Powered Q&A System (Latest - Oct 13, 2025)
+- **Interactive chat interface** — Ask questions about content while listening
+- **Chapter-aware responses** — AI knows context of current chapter
+- **Three AI features** — Ask questions, get summaries, extract key concepts
+- **Gemini Pro integration** — Cost-effective at ~$0.002 per question
+- **Conversation history** — Follow-up questions maintain context
+- **Graceful fallback** — Clear messaging when API key not configured
+- **See:** AI Q&A Setup section below for configuration
+
+### Text Highlighting Sync Fix (Oct 9, 2025)
+- **Perfect audio synchronization** — Fixed timing mismatch between audio and highlighted text
+- **Table and image handling** — Automatically skips tables/images that don't read well in audio
+- **20% cost savings** — Reduced character count by removing non-verbal content
+- **Dual-layer protection** — Skip at parse time + cleanup safety net
+- **Better TTS quality** — Only narrative text, cleaner pronunciation
+- **See:** `TIMING_FIX.md` and `TABLE_FIX_SUMMARY.md` for details
+
+### Large Chapter Support with Automatic Chunking
 - **Handles any chapter size** — Automatically processes chapters exceeding 5,000 character API limit
 - **Smart paragraph splitting** — Maintains natural breaks at paragraph/sentence boundaries
 - **Seamless audio merging** — FFmpeg-based concatenation creates single file per chapter
@@ -177,16 +194,18 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [x] **Persistent speed preferences** - LocalStorage saves user's preferred speed
 - [x] **Real-time speed adjustment** - Instant feedback with smooth slider
 
-### Phase 4: AI Agent Features (Next Priority)
-- [ ] **Interactive Q&A during playback** - Pause to ask questions about content
-- [ ] **Cross-chapter context** - AI can reference content from other chapters
-- [ ] Document chunking with timestamps per chapter
-- [ ] Vector embeddings for semantic search across all chapters
-- [ ] LLM integration for Q&A (OpenAI/Claude/Gemini)
-- [ ] Chat interface for user questions
-- [ ] **Chapter-aware responses** - AI knows which chapter user is listening to
-- [ ] Conversation history management
-- [ ] Real-time WebSocket communication
+### Phase 4: AI Agent Features ✅ (Completed)
+- [x] **Interactive Q&A during playback** - Ask questions about content while listening
+- [x] **Chapter-aware responses** - AI knows which chapter user is listening to
+- [x] **LLM integration** - Uses Google Gemini Pro for Q&A (~$0.002 per question)
+- [x] **Chat interface** - Dedicated chat tab with conversation history
+- [x] **Conversation history** - Maintains context across multiple questions
+- [x] **Three AI endpoints** - Ask questions, summarize chapters, extract key concepts
+- [x] **Context-aware prompting** - AI receives full chapter content for accurate answers
+- [x] **Graceful degradation** - Works without API key (features disabled with clear message)
+- [ ] **Cross-document search** - AI can reference content from other chapters (future)
+- [ ] Vector embeddings for semantic search across all chapters (future)
+- [ ] Real-time streaming responses (future enhancement)
 
 ### Phase 5: Advanced Features (Future)
 - [ ] Multiple voice selection UI (dropdown in web interface)
@@ -252,37 +271,8 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 
 ### 🎯 Immediate Priorities
 
-#### Phase 4: AI Question & Answer System (Next - 3-4 weeks)
-**Goal:** Enable users to ask questions about content while listening
-
-**Tasks:**
-- [ ] Integrate LLM API (OpenAI GPT-4 or Google Gemini)
-- [ ] Implement chapter text embedding and vector storage
-- [ ] Create chat interface in web UI
-- [ ] Add "Ask a Question" button that pauses audio
-- [ ] Context-aware prompting (knows current chapter/position)
-- [ ] Conversation history within session
-- [ ] Response streaming for better UX
-
-**Why Now:** Core differentiator - interactive audiobook with AI tutor
-
-#### Phase 6: Code Quality & Testing Audit (After Phase 4 - 1-2 weeks)
-**Goal:** Ensure all code is production-ready and well-tested
-
-**Tasks:**
-- [ ] Audit all functions for correctness and edge cases
-- [ ] Add comprehensive JSDoc comments to all functions
-- [ ] Expand test coverage from 92.82% to 95%+
-- [ ] Add integration tests for full workflows
-- [ ] Security audit (API keys, input validation, XSS protection)
-- [ ] Performance profiling and optimization
-- [ ] Browser compatibility testing
-- [ ] Accessibility audit (WCAG 2.1)
-
-**Why Then:** Before scaling to more users, ensure code quality is excellent
-
-#### Phase 5: UI Polish (Can be done in parallel - 1-2 weeks)
-**Priority:** Medium | **Can start alongside Phase 4**
+#### Phase 5: UI Polish (Next - 1-2 weeks)
+**Goal:** Improve user experience with better voice selection and navigation
 
 **Voice Selection UI:**
 - [ ] Create voice preview samples for each option
@@ -299,7 +289,23 @@ The Book Reader Agent bridges the gap between written content and audio consumpt
 - [ ] Parallel chunk generation (4x faster for large chapters)
 - [ ] Streaming audio delivery (play while generating)
 
-**Why These:** Quick wins that improve UX while building AI features
+**Why Now:** Quick wins that significantly improve UX
+
+#### Phase 6: Code Quality & Testing Audit (After Phase 5 - 1-2 weeks)
+**Goal:** Ensure all code is production-ready and well-tested
+
+**Tasks:**
+- [ ] Audit all functions for correctness and edge cases
+- [ ] Add comprehensive JSDoc comments to all functions
+- [ ] Expand test coverage from 92.82% to 95%+
+- [ ] Add integration tests for full workflows
+- [ ] Security audit (API keys, input validation, XSS protection)
+- [ ] Performance profiling and optimization
+- [ ] Browser compatibility testing
+- [ ] Accessibility audit (WCAG 2.1)
+
+**Why Then:** Before scaling to more users, ensure code quality is excellent
+
 
 ### 📅 Mid-Term Goals (3-6 Months)
 
@@ -519,23 +525,16 @@ To enable the AI Q&A feature:
 
 ## 📝 Suggested Next Steps
 
-Based on current completion (68% - Phases 1-3 done, Phase 4 in progress):
+Based on current completion (78% - Phases 1-4 done):
 
-### 🥇 Priority 1: AI Question & Answer System
-**Why:** Unique market differentiator - "interactive audiobook with AI tutor"
-- Integrate LLM (Gemini Pro recommended: $0.002/question vs GPT-4: $0.01/question)
-- Create chat interface in web UI
-- Context-aware responses using chapter content
-- Timeline: 3-4 weeks to MVP
-
-### 🥈 Priority 2: Voice Selection UI
-**Why:** Easy win - API already works, just need dropdown
-- Add voice preview samples
-- Create voice selector component
-- Save preference per document
+### 🥇 Priority 1: Voice Selection UI
+**Why:** Easy win - API already works, just need dropdown in UI
+- Add voice preview samples (already have voice-samples/ directory)
+- Create voice selector component in web interface
+- Save voice preference per document
 - Timeline: 3-5 days
 
-### 🥉 Priority 3: Enhanced Navigation
+### 🥈 Priority 2: Enhanced Navigation
 **Why:** 30-chapter documents need better navigation
 - Add chapter search/filter
 - Keyboard shortcuts (n/p for next/prev)
@@ -543,18 +542,18 @@ Based on current completion (68% - Phases 1-3 done, Phase 4 in progress):
 - Timeline: 1 week
 
 **What's Working Now:**
-- ✅ Core audio generation with voice selection (Phase 1-3: 100%)
+- ✅ Core audio generation with voice selection (Phases 1-3: 100%)
 - ✅ Large chapter support (auto-chunking + FFmpeg merging)  
 - ✅ Read-along with sentence highlighting
 - ✅ Progress tracking & resume
 - ✅ Playback speed control (0.75x-2.0x)
+- ✅ AI-powered Q&A with Gemini Pro (Phase 4: 100%)
 
 **Development Sequence:**
-1. **Phase 4 (Next):** AI Q&A - Creates unique "interactive tutor" value prop
-2. **Phase 5 (Parallel):** UI polish - Voice selector, navigation improvements
-3. **Phase 6 (Before scaling):** Code audit - Ensure quality before growth
-4. **Phase 7 (Scaling):** Cloud storage + multi-format - Enable multi-user
-5. **Phase 8 (Platform expansion):** Mobile app - Complete the ecosystem
+1. **Phase 5 (Next):** UI polish - Voice selector, navigation improvements
+2. **Phase 6 (Before scaling):** Code audit - Ensure quality before growth
+3. **Phase 7 (Scaling):** Cloud storage + multi-format - Enable multi-user
+4. **Phase 8 (Platform expansion):** Mobile app - Complete the ecosystem
 
 ---
 
